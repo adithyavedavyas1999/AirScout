@@ -4,8 +4,8 @@
   "description": "Real-time pollution hazard alerts for Chicago commuters",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0f0f23",
-  "theme_color": "#1a1a2e",
+  "background_color": "#04050a",
+  "theme_color": "#0a0a0f",
   "orientation": "portrait-primary",
   "icons": [
     {

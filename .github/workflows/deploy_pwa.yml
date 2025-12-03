@@ -1,0 +1,58 @@
+# Deploy PWA to GitHub Pages
+name: Deploy PWA
+
+on:
+  # Deploy on push to main
+  push:
+    branches:
+      - main
+    paths:
+      - 'pwa/**'
+  
+  # Allow manual trigger
+  workflow_dispatch:
+
+# Sets permissions for GitHub Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  deploy:
+    name: Deploy to GitHub Pages
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      - name: Create config.js with secrets
+        run: |
+          cat > pwa/config.js << 'EOF'
+          /**
+           * AirScout PWA Configuration
+           * Auto-generated during deployment
+           */
+          const AIRSCOUT_CONFIG = {
+              SUPABASE_URL: '${{ secrets.SUPABASE_URL }}',
+              SUPABASE_ANON_KEY: '${{ secrets.SUPABASE_ANON_KEY }}',
+              VAPID_PUBLIC_KEY: '${{ secrets.VAPID_PUBLIC_KEY }}'
+          };
+          EOF
+      
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+      
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: 'pwa'
+      
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+

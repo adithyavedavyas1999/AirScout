@@ -1,4 +1,4 @@
-# 🌬️ AirScout - WIP
+# 🌬️ AirScout
 
 **Risk-Based Routing Engine for Chicago** — Protecting children with asthma from hyper-local pollution sources like idling buses and demolition dust.
 
@@ -235,24 +235,43 @@ AirScout/
 
 ### Environment Variables
 
-| Variable | Description |
-|----------|-------------|
-| `SUPABASE_DB_HOST` | Supabase database host |
-| `SUPABASE_DB_PASSWORD` | Database password |
-| `SUPABASE_DB_PORT` | Database port (default: 5432) |
-| `SUPABASE_DB_NAME` | Database name (default: postgres) |
-| `SUPABASE_DB_USER` | Database user (default: postgres) |
-| `VAPID_PRIVATE_KEY` | Web Push private key |
-| `VAPID_EMAIL` | Contact email for push notifications |
+#### For Local Development (.env file)
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `SUPABASE_DB_HOST` | Direct database host | `db.xxx.supabase.co` |
+| `SUPABASE_DB_PORT` | Direct port | `5432` |
+| `SUPABASE_DB_USER` | Database user | `postgres` |
+| `SUPABASE_DB_PASSWORD` | Database password | Your password |
+| `SUPABASE_DB_NAME` | Database name | `postgres` |
+
+#### For GitHub Actions (use pooler)
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `SUPABASE_DB_HOST` | Pooler host | `aws-0-us-east-1.pooler.supabase.com` |
+| `SUPABASE_DB_PORT` | Pooler port | `6543` |
+| `SUPABASE_DB_USER` | Pooler user | `postgres.your-project-ref` |
+
+> **Why different?** Supabase blocks direct connections from cloud servers. The pooler is designed for external/cloud connections.
 
 ### GitHub Secrets (for Actions)
 
-Add these secrets in your repo settings:
+Add these secrets in **Settings → Secrets and variables → Actions**:
 
-- `SUPABASE_DB_HOST`
-- `SUPABASE_DB_PASSWORD`
-- `VAPID_PRIVATE_KEY`
-- `VAPID_EMAIL`
+| Secret | Description | Example |
+|--------|-------------|---------|
+| `SUPABASE_DB_HOST` | Pooler host (NOT direct) | `aws-0-us-east-1.pooler.supabase.com` |
+| `SUPABASE_DB_PORT` | Pooler port | `6543` |
+| `SUPABASE_DB_USER` | Pooler username | `postgres.your-project-ref` |
+| `SUPABASE_DB_PASSWORD` | Database password | Your password |
+| `SUPABASE_URL` | Supabase API URL | `https://xxx.supabase.co` |
+| `SUPABASE_ANON_KEY` | Publishable API key | Your anon/publishable key |
+| `VAPID_PUBLIC_KEY` | Push notification public key | Generated key |
+| `VAPID_PRIVATE_KEY` | Push notification private key | Generated key |
+| `VAPID_EMAIL` | Contact email for push | Your email |
+
+> **Note:** GitHub Actions requires the Supabase **connection pooler** (not direct connection) because cloud servers are blocked from direct database access.
 
 ---
 
@@ -313,8 +332,10 @@ python data_pipeline/check_route.py --coords '[[-87.63,41.88],[-87.64,41.92]]'
 ### PWA Deployment (GitHub Pages)
 
 1. Go to repo **Settings → Pages**
-2. Set source to `main` branch, `/pwa` folder
-3. Your PWA will be live at `https://username.github.io/AirScout/`
+2. Under "Build and deployment", set **Source** to **GitHub Actions**
+3. Add the required secrets (`SUPABASE_URL`, `SUPABASE_ANON_KEY`, `VAPID_PUBLIC_KEY`)
+4. Go to **Actions → "Deploy PWA"** and click **Run workflow**
+5. Your PWA will be live at `https://username.github.io/AirScout/`
 
 ### Push Notifications Setup
 
@@ -322,5 +343,10 @@ python data_pipeline/check_route.py --coords '[[-87.63,41.88],[-87.64,41.92]]'
    ```bash
    python scripts/generate_vapid_keys.py
    ```
-2. Add `VAPID_PRIVATE_KEY` to GitHub Secrets
-3. Add `VAPID_PUBLIC_KEY` to `pwa/config.js`
+2. Add `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, and `VAPID_EMAIL` to GitHub Secrets
+
+---
+
+## 🌐 Live Demo
+
+**https://adithyavedavyas1999.github.io/AirScout/**

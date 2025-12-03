@@ -11,14 +11,13 @@
 name: Data Pipelines
 
 on:
-  # DISABLED: Uncomment when GitHub Secrets are configured
-  # schedule:
-  #   # Permits: Every 6 hours
-  #   - cron: '0 */6 * * *'
-  #   # Schools: Daily at 6 AM CT (12 PM UTC)
-  #   - cron: '0 12 * * *'
-  #   # Traffic & School Hazards: Every 15 minutes
-  #   - cron: '*/15 * * * *'
+  schedule:
+    # Permits: Every 6 hours
+    - cron: '0 */6 * * *'
+    # Schools: Daily at 6 AM CT (12 PM UTC)
+    - cron: '0 12 * * *'
+    # Traffic & School Hazards: Every 15 minutes
+    - cron: '*/15 * * * *'
   
   # Manual trigger with job selection
   workflow_dispatch:
@@ -45,7 +44,10 @@ jobs:
   ingest-permits:
     name: Ingest Demolition Permits
     runs-on: ubuntu-latest
-    if: github.event.inputs.job == 'permits' || github.event.inputs.job == 'all'
+    if: |
+      github.event.schedule == '0 */6 * * *' ||
+      github.event.inputs.job == 'permits' || 
+      github.event.inputs.job == 'all'
     
     steps:
       - uses: actions/checkout@v4
@@ -76,7 +78,10 @@ jobs:
   ingest-schools:
     name: Ingest School Data
     runs-on: ubuntu-latest
-    if: github.event.inputs.job == 'schools' || github.event.inputs.job == 'all'
+    if: |
+      github.event.schedule == '0 12 * * *' ||
+      github.event.inputs.job == 'schools' || 
+      github.event.inputs.job == 'all'
     
     steps:
       - uses: actions/checkout@v4
@@ -104,7 +109,10 @@ jobs:
   generate-school-hazards:
     name: Generate School Zone Hazards
     runs-on: ubuntu-latest
-    if: github.event.inputs.job == 'school_hazards' || github.event.inputs.job == 'all'
+    if: |
+      github.event.schedule == '*/15 * * * *' ||
+      github.event.inputs.job == 'school_hazards' || 
+      github.event.inputs.job == 'all'
     
     steps:
       - uses: actions/checkout@v4
@@ -132,7 +140,10 @@ jobs:
   ingest-traffic:
     name: Ingest Traffic Data
     runs-on: ubuntu-latest
-    if: github.event.inputs.job == 'traffic' || github.event.inputs.job == 'all'
+    if: |
+      github.event.schedule == '*/15 * * * *' ||
+      github.event.inputs.job == 'traffic' || 
+      github.event.inputs.job == 'all'
     
     steps:
       - uses: actions/checkout@v4

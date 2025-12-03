@@ -7,9 +7,9 @@
 name: Alert Service
 
 on:
-  # DISABLED: Uncomment when GitHub Secrets are configured
-  # schedule:
-  #   - cron: '*/15 * * * *'
+  # Run every 15 minutes
+  schedule:
+    - cron: '*/15 * * * *'
   
   # Allow manual trigger
   workflow_dispatch:

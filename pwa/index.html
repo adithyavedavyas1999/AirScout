@@ -1,0 +1,1062 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#1a1a2e">
+    <meta name="description" content="AirScout - Breathe easier on your commute. Real-time pollution hazard alerts for Chicago.">
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+    
+    <title>AirScout - Clean Air Routes</title>
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-primary: #0f0f23;
+            --bg-secondary: #1a1a2e;
+            --bg-card: #16213e;
+            --accent-primary: #00d4aa;
+            --accent-warning: #ff6b6b;
+            --accent-caution: #ffa500;
+            --accent-school: #4ecdc4;
+            --text-primary: #e8e8e8;
+            --text-secondary: #a0a0a0;
+            --text-muted: #666;
+            --border-color: #2a2a4a;
+            --shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            --radius: 16px;
+            --radius-sm: 8px;
+        }
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-card) 100%);
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .header h1 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .header h1 span { color: var(--accent-primary); }
+        
+        .user-btn {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 1.2rem;
+        }
+        
+        /* Tabs */
+        .tabs {
+            display: flex;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .tab {
+            flex: 1;
+            padding: 1rem;
+            text-align: center;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+        }
+        
+        .tab.active {
+            color: var(--accent-primary);
+            border-bottom-color: var(--accent-primary);
+        }
+        
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        
+        /* Map */
+        #map {
+            height: calc(100vh - 200px);
+            min-height: 400px;
+            width: 100%;
+        }
+        
+        .map-controls {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .map-btn {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 0.75rem 1.25rem;
+            border-radius: var(--radius-sm);
+            font-family: inherit;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.2s;
+        }
+        
+        .map-btn:hover { background: var(--bg-secondary); }
+        .map-btn.primary {
+            background: var(--accent-primary);
+            color: var(--bg-primary);
+            border-color: var(--accent-primary);
+        }
+        
+        /* Status Panel */
+        .status-panel {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 1000;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            padding: 1rem;
+            min-width: 200px;
+            box-shadow: var(--shadow);
+        }
+        
+        .status-panel h3 {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+        }
+        
+        .risk-score {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 2rem;
+            font-weight: 700;
+        }
+        
+        .risk-score.high { color: var(--accent-warning); }
+        .risk-score.moderate { color: var(--accent-caution); }
+        .risk-score.low { color: var(--accent-primary); }
+        
+        .risk-level {
+            font-size: 0.9rem;
+            margin-top: 0.25rem;
+        }
+        
+        /* Routes List */
+        .routes-container {
+            padding: 1rem;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .route-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+        
+        .route-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.75rem;
+        }
+        
+        .route-name {
+            font-weight: 600;
+            font-size: 1rem;
+        }
+        
+        .route-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .route-btn {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 0.25rem;
+            font-size: 1.1rem;
+        }
+        
+        .route-btn:hover { color: var(--text-primary); }
+        
+        .route-stats {
+            display: flex;
+            gap: 1rem;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+        
+        .toggle-switch {
+            position: relative;
+            width: 48px;
+            height: 26px;
+        }
+        
+        .toggle-switch input { opacity: 0; width: 0; height: 0; }
+        
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: var(--bg-secondary);
+            border-radius: 26px;
+            border: 1px solid var(--border-color);
+            transition: 0.3s;
+        }
+        
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 20px;
+            width: 20px;
+            left: 2px;
+            bottom: 2px;
+            background: var(--text-secondary);
+            border-radius: 50%;
+            transition: 0.3s;
+        }
+        
+        input:checked + .toggle-slider {
+            background: var(--accent-primary);
+            border-color: var(--accent-primary);
+        }
+        
+        input:checked + .toggle-slider:before {
+            transform: translateX(22px);
+            background: var(--bg-primary);
+        }
+        
+        /* Alerts List */
+        .alert-card {
+            background: var(--bg-card);
+            border-radius: var(--radius);
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+            border-left: 4px solid var(--accent-warning);
+        }
+        
+        .alert-card.school { border-left-color: var(--accent-school); }
+        .alert-card.traffic { border-left-color: var(--accent-caution); }
+        
+        .alert-time {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+        
+        /* Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-overlay.active { display: flex; }
+        
+        .modal {
+            background: var(--bg-card);
+            border-radius: var(--radius);
+            padding: 1.5rem;
+            width: 90%;
+            max-width: 400px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .modal h2 {
+            font-size: 1.25rem;
+            margin-bottom: 1rem;
+        }
+        
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        
+        .form-group label {
+            display: block;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+        }
+        
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 0.75rem;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 1rem;
+        }
+        
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-family: inherit;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .btn-primary {
+            background: var(--accent-primary);
+            color: var(--bg-primary);
+        }
+        
+        .btn-secondary {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+        
+        .btn-block { width: 100%; }
+        
+        .btn-group {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+        
+        .btn-group .btn { flex: 1; }
+        
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: var(--text-secondary);
+        }
+        
+        .empty-state .icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+        
+        /* Loading */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            color: var(--text-secondary);
+        }
+        
+        .spinner {
+            width: 24px;
+            height: 24px;
+            border: 2px solid var(--border-color);
+            border-top-color: var(--accent-primary);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-right: 0.5rem;
+        }
+        
+        @keyframes spin { to { transform: rotate(360deg); } }
+        
+        /* Hazard Legend */
+        .legend {
+            position: absolute;
+            bottom: 80px;
+            left: 10px;
+            z-index: 1000;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            padding: 0.75rem;
+            font-size: 0.75rem;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.25rem;
+        }
+        
+        .legend-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+        
+        .legend-dot.permit { background: var(--accent-warning); }
+        .legend-dot.traffic { background: var(--accent-caution); }
+        .legend-dot.school { background: var(--accent-school); }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <h1>🌬️ Air<span>Scout</span></h1>
+        <button class="user-btn" onclick="showSettings()">⚙️</button>
+    </header>
+    
+    <!-- Tabs -->
+    <nav class="tabs">
+        <div class="tab active" data-tab="map">🗺️ Map</div>
+        <div class="tab" data-tab="routes">📍 Routes</div>
+        <div class="tab" data-tab="alerts">🔔 Alerts</div>
+    </nav>
+    
+    <!-- Map Tab -->
+    <div class="tab-content active" id="tab-map">
+        <div id="map"></div>
+        
+        <!-- Status Panel -->
+        <div class="status-panel" id="statusPanel" style="display: none;">
+            <h3>Route Risk Score</h3>
+            <div class="risk-score" id="riskScore">--</div>
+            <div class="risk-level" id="riskLevel">Draw a route to check</div>
+        </div>
+        
+        <!-- Legend -->
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-dot permit"></div>
+                <span>Demolition</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-dot traffic"></div>
+                <span>Traffic</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-dot school"></div>
+                <span>School Zone</span>
+            </div>
+        </div>
+        
+        <!-- Map Controls -->
+        <div class="map-controls">
+            <button class="map-btn" onclick="startDrawing()">✏️ Draw Route</button>
+            <button class="map-btn" onclick="clearRoute()">🗑️ Clear</button>
+            <button class="map-btn primary" id="saveRouteBtn" onclick="showSaveModal()" style="display: none;">
+                💾 Save Route
+            </button>
+        </div>
+    </div>
+    
+    <!-- Routes Tab -->
+    <div class="tab-content" id="tab-routes">
+        <div class="routes-container" id="routesContainer">
+            <div class="loading">
+                <div class="spinner"></div>
+                <span>Loading routes...</span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Alerts Tab -->
+    <div class="tab-content" id="tab-alerts">
+        <div class="routes-container" id="alertsContainer">
+            <div class="empty-state">
+                <div class="icon">🔔</div>
+                <h3>No Recent Alerts</h3>
+                <p>Save a route to receive hazard notifications</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Save Route Modal -->
+    <div class="modal-overlay" id="saveModal">
+        <div class="modal">
+            <h2>💾 Save Route</h2>
+            <div class="form-group">
+                <label>Route Name</label>
+                <input type="text" id="routeName" placeholder="e.g., Morning Commute">
+            </div>
+            <div class="form-group">
+                <label>Alert Threshold</label>
+                <select id="severityThreshold">
+                    <option value="1">All hazards (1+)</option>
+                    <option value="2">Low and above (2+)</option>
+                    <option value="3" selected>Moderate and above (3+)</option>
+                    <option value="4">High and above (4+)</option>
+                    <option value="5">Critical only (5)</option>
+                </select>
+            </div>
+            <div class="btn-group">
+                <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="saveRoute()">Save & Subscribe</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Scripts -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <!-- Load config from external file (gitignored) -->
+    <script src="config.js"></script>
+    
+    <script>
+        // ============================================================
+        // Configuration - Loaded from config.js
+        // ============================================================
+        // config.js should define AIRSCOUT_CONFIG with:
+        // - SUPABASE_URL
+        // - SUPABASE_ANON_KEY  
+        // - VAPID_PUBLIC_KEY
+        
+        // Fallback for demo mode if config.js not found
+        const CONFIG = typeof AIRSCOUT_CONFIG !== 'undefined' ? AIRSCOUT_CONFIG : {
+            SUPABASE_URL: null,
+            SUPABASE_ANON_KEY: null,
+            VAPID_PUBLIC_KEY: null
+        };
+        
+        const SUPABASE_URL = CONFIG.SUPABASE_URL;
+        const SUPABASE_ANON_KEY = CONFIG.SUPABASE_ANON_KEY;
+        const VAPID_PUBLIC_KEY = CONFIG.VAPID_PUBLIC_KEY;
+        
+        const CHICAGO_CENTER = [41.8781, -87.6298];
+        const ROUTE_BUFFER_METERS = 25;
+        
+        const HAZARD_CONFIG = {
+            PERMIT: { color: '#ff6b6b', icon: '🏗️', label: 'Demolition' },
+            TRAFFIC: { color: '#ffa500', icon: '🚗', label: 'Traffic' },
+            SCHOOL: { color: '#4ecdc4', icon: '🏫', label: 'School Zone' }
+        };
+        
+        // ============================================================
+        // State
+        // ============================================================
+        let map = null;
+        let drawControl = null;
+        let drawnRoute = null;
+        let hazardMarkers = [];
+        let routeLayer = null;
+        let supabase = null;
+        let currentUser = null;
+        let currentRouteCoords = [];
+        
+        // ============================================================
+        // Initialize
+        // ============================================================
+        document.addEventListener('DOMContentLoaded', async () => {
+            initTabs();
+            initMap();
+            await initSupabase();
+            await loadHazards();
+            await loadUserRoutes();
+            
+            // Refresh hazards every 2 minutes
+            setInterval(loadHazards, 120000);
+        });
+        
+        function initTabs() {
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                    
+                    tab.classList.add('active');
+                    document.getElementById(`tab-${tab.dataset.tab}`).classList.add('active');
+                    
+                    if (tab.dataset.tab === 'map') {
+                        map.invalidateSize();
+                    }
+                });
+            });
+        }
+        
+        function initMap() {
+            map = L.map('map').setView(CHICAGO_CENTER, 12);
+            
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                attribution: '© OpenStreetMap © CARTO',
+                maxZoom: 19
+            }).addTo(map);
+            
+            // Initialize draw control
+            const drawnItems = new L.FeatureGroup();
+            map.addLayer(drawnItems);
+            
+            drawControl = new L.Control.Draw({
+                draw: {
+                    polyline: {
+                        shapeOptions: {
+                            color: '#00d4aa',
+                            weight: 4
+                        }
+                    },
+                    polygon: false,
+                    circle: false,
+                    rectangle: false,
+                    marker: false,
+                    circlemarker: false
+                },
+                edit: {
+                    featureGroup: drawnItems
+                }
+            });
+            
+            map.on(L.Draw.Event.CREATED, async (e) => {
+                if (routeLayer) {
+                    map.removeLayer(routeLayer);
+                }
+                
+                routeLayer = e.layer;
+                map.addLayer(routeLayer);
+                
+                // Extract coordinates
+                currentRouteCoords = routeLayer.getLatLngs().map(ll => [ll.lng, ll.lat]);
+                
+                // Check route for hazards
+                await checkRoute(currentRouteCoords);
+                
+                // Show save button
+                document.getElementById('saveRouteBtn').style.display = 'flex';
+            });
+        }
+        
+        async function initSupabase() {
+            // Check if config.js was loaded with valid values
+            if (!SUPABASE_URL || !SUPABASE_ANON_KEY || SUPABASE_URL.includes('YOUR_')) {
+                console.warn('Supabase not configured - using demo mode');
+                console.warn('Create pwa/config.js from pwa/config.example.js');
+                return;
+            }
+            
+            supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            
+            // Get or create anonymous user ID
+            currentUser = localStorage.getItem('airscout_user_id');
+            if (!currentUser) {
+                currentUser = 'anon_' + Math.random().toString(36).substr(2, 9);
+                localStorage.setItem('airscout_user_id', currentUser);
+            }
+        }
+        
+        // ============================================================
+        // Route Drawing
+        // ============================================================
+        function startDrawing() {
+            new L.Draw.Polyline(map, drawControl.options.draw.polyline).enable();
+        }
+        
+        function clearRoute() {
+            if (routeLayer) {
+                map.removeLayer(routeLayer);
+                routeLayer = null;
+            }
+            currentRouteCoords = [];
+            document.getElementById('saveRouteBtn').style.display = 'none';
+            document.getElementById('statusPanel').style.display = 'none';
+        }
+        
+        // ============================================================
+        // Route Checking
+        // ============================================================
+        async function checkRoute(coords) {
+            const panel = document.getElementById('statusPanel');
+            panel.style.display = 'block';
+            document.getElementById('riskScore').textContent = '...';
+            document.getElementById('riskLevel').textContent = 'Checking route...';
+            
+            try {
+                let result;
+                
+                if (supabase) {
+                    // Use Supabase RPC
+                    const routeWkt = `LINESTRING(${coords.map(c => `${c[0]} ${c[1]}`).join(', ')})`;
+                    
+                    const { data, error } = await supabase.rpc('check_route_hazards', {
+                        route_wkt: routeWkt,
+                        buffer_meters: ROUTE_BUFFER_METERS,
+                        min_severity: 1
+                    });
+                    
+                    if (error) throw error;
+                    result = calculateLocalRisk(data || []);
+                } else {
+                    // Demo mode
+                    result = {
+                        score: Math.floor(Math.random() * 60) + 20,
+                        level: 'MODERATE',
+                        hazards: getDemoHazards()
+                    };
+                }
+                
+                // Update UI
+                const scoreEl = document.getElementById('riskScore');
+                scoreEl.textContent = result.score;
+                scoreEl.className = `risk-score ${result.level.toLowerCase()}`;
+                
+                document.getElementById('riskLevel').textContent = 
+                    `${result.level} Risk • ${result.hazards?.length || 0} hazards`;
+                
+                // Highlight hazards on route
+                highlightRouteHazards(result.hazards || []);
+                
+            } catch (error) {
+                console.error('Error checking route:', error);
+                document.getElementById('riskLevel').textContent = 'Error checking route';
+            }
+        }
+        
+        function calculateLocalRisk(hazards) {
+            if (!hazards.length) {
+                return { score: 0, level: 'LOW', hazards: [] };
+            }
+            
+            let totalScore = 0;
+            hazards.forEach(h => {
+                const distWeight = Math.max(0, 1 - (h.distance_meters / ROUTE_BUFFER_METERS));
+                totalScore += distWeight * (h.severity / 5) * 25;
+            });
+            
+            const score = Math.min(100, Math.round(totalScore));
+            let level = 'LOW';
+            if (score >= 70) level = 'HIGH';
+            else if (score >= 40) level = 'MODERATE';
+            
+            return { score, level, hazards };
+        }
+        
+        function highlightRouteHazards(hazards) {
+            // Clear existing
+            hazardMarkers.forEach(m => map.removeLayer(m));
+            hazardMarkers = [];
+            
+            hazards.forEach(h => {
+                const config = HAZARD_CONFIG[h.type] || HAZARD_CONFIG.PERMIT;
+                
+                const marker = L.circleMarker([h.latitude, h.longitude], {
+                    radius: 10 + h.severity * 2,
+                    fillColor: config.color,
+                    color: '#fff',
+                    weight: 3,
+                    opacity: 1,
+                    fillOpacity: 0.8
+                }).addTo(map);
+                
+                marker.bindPopup(`
+                    <strong>${config.icon} ${config.label}</strong><br>
+                    ${h.description}<br>
+                    <em>Severity: ${h.severity}/5</em><br>
+                    <em>Distance: ${Math.round(h.distance_meters)}m</em>
+                `);
+                
+                hazardMarkers.push(marker);
+            });
+        }
+        
+        // ============================================================
+        // Hazard Loading
+        // ============================================================
+        async function loadHazards() {
+            try {
+                let hazards;
+                
+                if (supabase) {
+                    const { data, error } = await supabase
+                        .from('hazards_active')
+                        .select('*')
+                        .gt('expires_at', new Date().toISOString())
+                        .order('severity', { ascending: false })
+                        .limit(200);
+                    
+                    if (error) throw error;
+                    hazards = data;
+                } else {
+                    hazards = getDemoHazards();
+                }
+                
+                // Update existing markers
+                updateMapMarkers(hazards);
+                
+            } catch (error) {
+                console.error('Error loading hazards:', error);
+            }
+        }
+        
+        function updateMapMarkers(hazards) {
+            // Only update if no route is being checked
+            if (routeLayer) return;
+            
+            hazardMarkers.forEach(m => map.removeLayer(m));
+            hazardMarkers = [];
+            
+            hazards.forEach(h => {
+                const lat = h.latitude || (h.location?.coordinates?.[1]);
+                const lng = h.longitude || (h.location?.coordinates?.[0]);
+                if (!lat || !lng) return;
+                
+                const config = HAZARD_CONFIG[h.type] || HAZARD_CONFIG.PERMIT;
+                
+                const marker = L.circleMarker([lat, lng], {
+                    radius: 6 + h.severity,
+                    fillColor: config.color,
+                    color: '#fff',
+                    weight: 2,
+                    opacity: 0.8,
+                    fillOpacity: 0.6
+                }).addTo(map);
+                
+                marker.bindPopup(`
+                    <strong>${config.icon} ${config.label}</strong><br>
+                    ${h.description || 'No description'}<br>
+                    <em>Severity: ${h.severity}/5</em>
+                `);
+                
+                hazardMarkers.push(marker);
+            });
+        }
+        
+        // ============================================================
+        // Route Saving & Subscriptions
+        // ============================================================
+        function showSaveModal() {
+            document.getElementById('saveModal').classList.add('active');
+        }
+        
+        function closeModal() {
+            document.getElementById('saveModal').classList.remove('active');
+        }
+        
+        async function saveRoute() {
+            const name = document.getElementById('routeName').value || 'My Route';
+            const threshold = parseInt(document.getElementById('severityThreshold').value);
+            
+            if (currentRouteCoords.length < 2) {
+                alert('Please draw a route first');
+                return;
+            }
+            
+            try {
+                if (supabase) {
+                    const routeWkt = `LINESTRING(${currentRouteCoords.map(c => `${c[0]} ${c[1]}`).join(', ')})`;
+                    
+                    // Get push subscription if available
+                    let pushToken = null;
+                    if ('Notification' in window && Notification.permission === 'granted') {
+                        pushToken = await getPushSubscription();
+                    }
+                    
+                    const { data, error } = await supabase.rpc('subscribe_to_route', {
+                        p_user_id: currentUser,
+                        p_route_wkt: routeWkt,
+                        p_route_name: name,
+                        p_push_token: pushToken,
+                        p_severity_threshold: threshold
+                    });
+                    
+                    if (error) throw error;
+                    
+                    alert('Route saved! You will receive alerts for hazards on this route.');
+                } else {
+                    // Demo mode - save to localStorage
+                    const routes = JSON.parse(localStorage.getItem('airscout_routes') || '[]');
+                    routes.push({
+                        id: Date.now(),
+                        name,
+                        coords: currentRouteCoords,
+                        threshold,
+                        alertsEnabled: true
+                    });
+                    localStorage.setItem('airscout_routes', JSON.stringify(routes));
+                    alert('Route saved locally (demo mode)');
+                }
+                
+                closeModal();
+                loadUserRoutes();
+                
+            } catch (error) {
+                console.error('Error saving route:', error);
+                alert('Failed to save route');
+            }
+        }
+        
+        async function loadUserRoutes() {
+            const container = document.getElementById('routesContainer');
+            
+            try {
+                let routes;
+                
+                if (supabase) {
+                    const { data, error } = await supabase.rpc('get_user_subscriptions', {
+                        p_user_id: currentUser
+                    });
+                    
+                    if (error) throw error;
+                    routes = data;
+                } else {
+                    routes = JSON.parse(localStorage.getItem('airscout_routes') || '[]');
+                }
+                
+                if (!routes || routes.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <div class="icon">📍</div>
+                            <h3>No Saved Routes</h3>
+                            <p>Draw a route on the map and save it to receive alerts</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                container.innerHTML = routes.map(route => `
+                    <div class="route-card">
+                        <div class="route-header">
+                            <span class="route-name">${route.route_name || route.name}</span>
+                            <div class="route-actions">
+                                <button class="route-btn" onclick="viewRoute('${route.id}')">👁️</button>
+                                <button class="route-btn" onclick="deleteRoute('${route.id}')">🗑️</button>
+                            </div>
+                        </div>
+                        <div class="route-stats">
+                            <span>Threshold: ${route.severity_threshold || route.threshold}+</span>
+                            <label class="toggle-switch">
+                                <input type="checkbox" ${route.alert_enabled !== false ? 'checked' : ''} 
+                                       onchange="toggleAlerts('${route.id}', this.checked)">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                `).join('');
+                
+            } catch (error) {
+                console.error('Error loading routes:', error);
+                container.innerHTML = '<p class="error">Failed to load routes</p>';
+            }
+        }
+        
+        async function toggleAlerts(routeId, enabled) {
+            if (supabase) {
+                await supabase.rpc('update_subscription_alerts', {
+                    p_subscription_id: routeId,
+                    p_user_id: currentUser,
+                    p_alert_enabled: enabled
+                });
+            }
+        }
+        
+        async function deleteRoute(routeId) {
+            if (!confirm('Delete this route?')) return;
+            
+            if (supabase) {
+                await supabase.rpc('delete_subscription', {
+                    p_subscription_id: routeId,
+                    p_user_id: currentUser
+                });
+            } else {
+                const routes = JSON.parse(localStorage.getItem('airscout_routes') || '[]');
+                const filtered = routes.filter(r => r.id != routeId);
+                localStorage.setItem('airscout_routes', JSON.stringify(filtered));
+            }
+            
+            loadUserRoutes();
+        }
+        
+        // ============================================================
+        // Push Notifications
+        // ============================================================
+        async function getPushSubscription() {
+            try {
+                const reg = await navigator.serviceWorker.ready;
+                let sub = await reg.pushManager.getSubscription();
+                
+                if (!sub) {
+                    // Request permission and subscribe
+                    const permission = await Notification.requestPermission();
+                    if (permission !== 'granted') return null;
+                    
+                    // Use VAPID public key from config.js
+                    if (!VAPID_PUBLIC_KEY) {
+                        console.warn('VAPID_PUBLIC_KEY not configured');
+                        return null;
+                    }
+                    sub = await reg.pushManager.subscribe({
+                        userVisibleOnly: true,
+                        applicationServerKey: VAPID_PUBLIC_KEY
+                    });
+                }
+                
+                return JSON.stringify(sub.toJSON());
+            } catch (error) {
+                console.error('Push subscription error:', error);
+                return null;
+            }
+        }
+        
+        // ============================================================
+        // Demo Data
+        // ============================================================
+        function getDemoHazards() {
+            return [
+                { id: 1, type: 'PERMIT', severity: 4, description: 'Active demolition at 123 W Madison St', latitude: 41.8819, longitude: -87.6278, distance_meters: 15 },
+                { id: 2, type: 'SCHOOL', severity: 5, description: 'School Zone - Lincoln Elementary', latitude: 41.9219, longitude: -87.6534, distance_meters: 8 },
+                { id: 3, type: 'TRAFFIC', severity: 3, description: 'Traffic congestion on I-90/94', latitude: 41.8729, longitude: -87.6215, distance_meters: 22 },
+                { id: 4, type: 'PERMIT', severity: 3, description: 'Construction at 456 N State St', latitude: 41.8901, longitude: -87.6281, distance_meters: 18 }
+            ];
+        }
+        
+        function showSettings() {
+            alert('Settings coming soon!\\n\\nUser ID: ' + (currentUser || 'Not set'));
+        }
+        
+        // Register service worker
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js')
+                .then(reg => console.log('SW registered'))
+                .catch(err => console.warn('SW registration failed:', err));
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,151 @@
+# AirScout - Data Pipeline Orchestration
+# =======================================
+# Runs all data ingestion jobs on schedule
+#
+# Schedule:
+# - Permits: Every 6 hours (validates against 311 complaints)
+# - Schools: Daily at 6 AM (reference data, rarely changes)
+# - School Hazards: Every 15 minutes during peak hours
+# - Traffic: Every 15 minutes (with school zone override)
+
+name: Data Pipelines
+
+on:
+  # DISABLED: Uncomment when GitHub Secrets are configured
+  # schedule:
+  #   # Permits: Every 6 hours
+  #   - cron: '0 */6 * * *'
+  #   # Schools: Daily at 6 AM CT (12 PM UTC)
+  #   - cron: '0 12 * * *'
+  #   # Traffic & School Hazards: Every 15 minutes
+  #   - cron: '*/15 * * * *'
+  
+  # Manual trigger with job selection
+  workflow_dispatch:
+    inputs:
+      job:
+        description: 'Which pipeline to run'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - permits
+          - schools
+          - school_hazards
+          - traffic
+
+env:
+  PYTHON_VERSION: '3.11'
+
+jobs:
+  # ============================================================
+  # Permit Ingestion (Zombie Permit Logic)
+  # ============================================================
+  ingest-permits:
+    name: Ingest Demolition Permits
+    runs-on: ubuntu-latest
+    if: github.event.inputs.job == 'permits' || github.event.inputs.job == 'all'
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+      
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgdal-dev gdal-bin
+          pip install -r requirements.txt
+      
+      - name: Run permit ingestion
+        env:
+          SUPABASE_DB_HOST: ${{ secrets.SUPABASE_DB_HOST }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: python data_pipeline/ingest_permits.py
+
+  # ============================================================
+  # School Data Ingestion (Reference Data)
+  # ============================================================
+  ingest-schools:
+    name: Ingest School Data
+    runs-on: ubuntu-latest
+    if: github.event.inputs.job == 'schools' || github.event.inputs.job == 'all'
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+      
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      
+      - name: Run school ingestion
+        env:
+          SUPABASE_DB_HOST: ${{ secrets.SUPABASE_DB_HOST }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: python data_pipeline/ingest_schools.py
+
+  # ============================================================
+  # School Zone Hazard Generation (Peak Hours)
+  # ============================================================
+  generate-school-hazards:
+    name: Generate School Zone Hazards
+    runs-on: ubuntu-latest
+    if: github.event.inputs.job == 'school_hazards' || github.event.inputs.job == 'all'
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+      
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      
+      - name: Generate school hazards
+        env:
+          SUPABASE_DB_HOST: ${{ secrets.SUPABASE_DB_HOST }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: python data_pipeline/generate_school_hazards.py
+
+  # ============================================================
+  # Traffic Congestion Ingestion (with School Zone Override)
+  # ============================================================
+  ingest-traffic:
+    name: Ingest Traffic Data
+    runs-on: ubuntu-latest
+    if: github.event.inputs.job == 'traffic' || github.event.inputs.job == 'all'
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+      
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgdal-dev gdal-bin
+          pip install -r requirements.txt
+      
+      - name: Run traffic ingestion
+        env:
+          SUPABASE_DB_HOST: ${{ secrets.SUPABASE_DB_HOST }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: python data_pipeline/ingest_traffic.py
+

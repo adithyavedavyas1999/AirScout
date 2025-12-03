@@ -1,0 +1,67 @@
+# AirScout - Permit Ingestion Pipeline
+# =====================================
+# Runs the Zombie Permit ingestion every 6 hours
+# 
+# This workflow:
+# 1. Fetches demolition permits from Chicago Data Portal
+# 2. Validates them against 311 complaints (200m radius, 48h window)
+# 3. Upserts validated permits as hazards to Supabase
+
+name: Ingest Permits
+
+on:
+  # DISABLED: Uncomment when secrets are configured
+  # schedule:
+  #   - cron: '0 */6 * * *'
+  
+  # Allow manual trigger from Actions tab
+  workflow_dispatch:
+
+env:
+  PYTHON_VERSION: '3.11'
+
+jobs:
+  ingest-permits:
+    name: Run Permit Ingestion
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+      
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgdal-dev gdal-bin
+      
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      
+      - name: Run permit ingestion
+        env:
+          SUPABASE_DB_HOST: ${{ secrets.SUPABASE_DB_HOST }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          SUPABASE_DB_PORT: ${{ secrets.SUPABASE_DB_PORT || '5432' }}
+          SUPABASE_DB_NAME: ${{ secrets.SUPABASE_DB_NAME || 'postgres' }}
+          SUPABASE_DB_USER: ${{ secrets.SUPABASE_DB_USER || 'postgres' }}
+        run: |
+          python data_pipeline/ingest_permits.py
+      
+      - name: Upload logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pipeline-logs
+          path: |
+            *.log
+          retention-days: 7
+
+

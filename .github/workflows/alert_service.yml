@@ -1,0 +1,70 @@
+# AirScout - Alert Service
+# ========================
+# Checks user routes for hazards and sends push notifications
+#
+# Runs every 15 minutes to catch new hazards quickly
+
+name: Alert Service
+
+on:
+  # DISABLED: Uncomment when GitHub Secrets are configured
+  # schedule:
+  #   - cron: '*/15 * * * *'
+  
+  # Allow manual trigger
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run (no notifications)'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+
+env:
+  PYTHON_VERSION: '3.11'
+
+jobs:
+  check-alerts:
+    name: Check Routes & Send Alerts
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+      
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgdal-dev gdal-bin
+          pip install -r requirements.txt
+          pip install pywebpush  # For push notifications
+      
+      - name: Run alert service
+        env:
+          SUPABASE_DB_HOST: ${{ secrets.SUPABASE_DB_HOST }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
+          VAPID_EMAIL: ${{ secrets.VAPID_EMAIL }}
+        run: |
+          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
+            python data_pipeline/alert_service.py --dry-run
+          else
+            python data_pipeline/alert_service.py
+          fi
+      
+      - name: Upload logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: alert-service-logs
+          path: "*.log"
+          retention-days: 7
+

@@ -541,28 +541,16 @@
     <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
-    <!-- Load config from external file (gitignored) -->
+    <!-- Load configuration (created by deployment or from config.js) -->
     <script src="config.js"></script>
     
     <script>
         // ============================================================
         // Configuration - Loaded from config.js
         // ============================================================
-        // config.js should define AIRSCOUT_CONFIG with:
-        // - SUPABASE_URL
-        // - SUPABASE_ANON_KEY  
-        // - VAPID_PUBLIC_KEY
-        
-        // Fallback for demo mode if config.js not found
-        const CONFIG = typeof AIRSCOUT_CONFIG !== 'undefined' ? AIRSCOUT_CONFIG : {
-            SUPABASE_URL: null,
-            SUPABASE_ANON_KEY: null,
-            VAPID_PUBLIC_KEY: null
-        };
-        
-        const SUPABASE_URL = CONFIG.SUPABASE_URL;
-        const SUPABASE_ANON_KEY = CONFIG.SUPABASE_ANON_KEY;
-        const VAPID_PUBLIC_KEY = CONFIG.VAPID_PUBLIC_KEY;
+        const SUPABASE_URL = (typeof AIRSCOUT_CONFIG !== 'undefined') ? AIRSCOUT_CONFIG.SUPABASE_URL : '';
+        const SUPABASE_ANON_KEY = (typeof AIRSCOUT_CONFIG !== 'undefined') ? AIRSCOUT_CONFIG.SUPABASE_ANON_KEY : '';
+        const VAPID_PUBLIC_KEY = (typeof AIRSCOUT_CONFIG !== 'undefined') ? AIRSCOUT_CONFIG.VAPID_PUBLIC_KEY : '';
         
         const CHICAGO_CENTER = [41.8781, -87.6298];
         const ROUTE_BUFFER_METERS = 25;
@@ -666,10 +654,8 @@
         }
         
         async function initSupabase() {
-            // Check if config.js was loaded with valid values
-            if (!SUPABASE_URL || !SUPABASE_ANON_KEY || SUPABASE_URL.includes('YOUR_')) {
+            if (!SUPABASE_URL || SUPABASE_URL === 'YOUR_SUPABASE_URL') {
                 console.warn('Supabase not configured - using demo mode');
-                console.warn('Create pwa/config.js from pwa/config.example.js');
                 return;
             }
             
@@ -1017,11 +1003,12 @@
                     const permission = await Notification.requestPermission();
                     if (permission !== 'granted') return null;
                     
-                    // Use VAPID public key from config.js
+                    // Use VAPID public key from config
                     if (!VAPID_PUBLIC_KEY) {
                         console.warn('VAPID_PUBLIC_KEY not configured');
                         return null;
                     }
+                    
                     sub = await reg.pushManager.subscribe({
                         userVisibleOnly: true,
                         applicationServerKey: VAPID_PUBLIC_KEY

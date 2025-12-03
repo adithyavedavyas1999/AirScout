@@ -47,11 +47,13 @@ jobs:
       
       - name: Run permit ingestion
         env:
+          # Use Supabase Pooler for external connections (GitHub Actions)
+          # Get pooler host from: Supabase Dashboard → Settings → Database → Connection string
           SUPABASE_DB_HOST: ${{ secrets.SUPABASE_DB_HOST }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
-          SUPABASE_DB_PORT: ${{ secrets.SUPABASE_DB_PORT || '5432' }}
+          SUPABASE_DB_PORT: ${{ secrets.SUPABASE_DB_PORT || '6543' }}
           SUPABASE_DB_NAME: ${{ secrets.SUPABASE_DB_NAME || 'postgres' }}
-          SUPABASE_DB_USER: ${{ secrets.SUPABASE_DB_USER || 'postgres' }}
+          SUPABASE_DB_USER: ${{ secrets.SUPABASE_DB_USER || 'postgres.rtuntvcspaatkjjtmled' }}
         run: |
           python data_pipeline/ingest_permits.py
       

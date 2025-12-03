@@ -51,6 +51,8 @@ jobs:
         env:
           SUPABASE_DB_HOST: ${{ secrets.SUPABASE_DB_HOST }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          SUPABASE_DB_PORT: ${{ secrets.SUPABASE_DB_PORT || '6543' }}
+          SUPABASE_DB_USER: ${{ secrets.SUPABASE_DB_USER || 'postgres.rtuntvcspaatkjjtmled' }}
           VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
           VAPID_EMAIL: ${{ secrets.VAPID_EMAIL }}
         run: |

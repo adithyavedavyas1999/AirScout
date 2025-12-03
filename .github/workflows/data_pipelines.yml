@@ -66,6 +66,8 @@ jobs:
         env:
           SUPABASE_DB_HOST: ${{ secrets.SUPABASE_DB_HOST }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          SUPABASE_DB_PORT: ${{ secrets.SUPABASE_DB_PORT || '6543' }}
+          SUPABASE_DB_USER: ${{ secrets.SUPABASE_DB_USER || 'postgres.rtuntvcspaatkjjtmled' }}
         run: python data_pipeline/ingest_permits.py
 
   # ============================================================
@@ -92,6 +94,8 @@ jobs:
         env:
           SUPABASE_DB_HOST: ${{ secrets.SUPABASE_DB_HOST }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          SUPABASE_DB_PORT: ${{ secrets.SUPABASE_DB_PORT || '6543' }}
+          SUPABASE_DB_USER: ${{ secrets.SUPABASE_DB_USER || 'postgres.rtuntvcspaatkjjtmled' }}
         run: python data_pipeline/ingest_schools.py
 
   # ============================================================
@@ -118,6 +122,8 @@ jobs:
         env:
           SUPABASE_DB_HOST: ${{ secrets.SUPABASE_DB_HOST }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          SUPABASE_DB_PORT: ${{ secrets.SUPABASE_DB_PORT || '6543' }}
+          SUPABASE_DB_USER: ${{ secrets.SUPABASE_DB_USER || 'postgres.rtuntvcspaatkjjtmled' }}
         run: python data_pipeline/generate_school_hazards.py
 
   # ============================================================
@@ -147,5 +153,7 @@ jobs:
         env:
           SUPABASE_DB_HOST: ${{ secrets.SUPABASE_DB_HOST }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          SUPABASE_DB_PORT: ${{ secrets.SUPABASE_DB_PORT || '6543' }}
+          SUPABASE_DB_USER: ${{ secrets.SUPABASE_DB_USER || 'postgres.rtuntvcspaatkjjtmled' }}
         run: python data_pipeline/ingest_traffic.py
 

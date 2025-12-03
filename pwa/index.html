@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="theme-color" content="#1a1a2e">
-    <meta name="description" content="AirScout - Breathe easier on your commute. Real-time pollution hazard alerts for Chicago.">
+    <meta name="theme-color" content="#0a0a0f">
+    <meta name="description" content="AirScout - Protecting children with asthma from pollution hazards in Chicago.">
     
     <!-- PWA Manifest -->
     <link rel="manifest" href="manifest.json">
@@ -16,512 +16,1033 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
     
-    <!-- Google Fonts -->
+    <!-- Google Fonts - Unique combination -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
     
     <style>
         :root {
-            --bg-primary: #0f0f23;
-            --bg-secondary: #1a1a2e;
-            --bg-card: #16213e;
-            --accent-primary: #00d4aa;
-            --accent-warning: #ff6b6b;
-            --accent-caution: #ffa500;
-            --accent-school: #4ecdc4;
-            --text-primary: #e8e8e8;
-            --text-secondary: #a0a0a0;
-            --text-muted: #666;
-            --border-color: #2a2a4a;
-            --shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-            --radius: 16px;
+            /* Deep midnight palette */
+            --bg-void: #04050a;
+            --bg-deep: #0a0b12;
+            --bg-surface: #12141f;
+            --bg-elevated: #1a1d2e;
+            --bg-hover: #222640;
+            
+            /* Accent colors - Fresh teal/cyan */
+            --accent: #00e5c7;
+            --accent-glow: rgba(0, 229, 199, 0.15);
+            --accent-soft: rgba(0, 229, 199, 0.08);
+            
+            /* Status colors */
+            --danger: #ff4757;
+            --danger-glow: rgba(255, 71, 87, 0.2);
+            --warning: #ffa502;
+            --warning-glow: rgba(255, 165, 2, 0.2);
+            --safe: #2ed573;
+            --safe-glow: rgba(46, 213, 115, 0.2);
+            --school: #3498db;
+            --school-glow: rgba(52, 152, 219, 0.2);
+            
+            /* Text */
+            --text-bright: #ffffff;
+            --text-primary: #e4e6ed;
+            --text-secondary: #8b8fa3;
+            --text-muted: #545872;
+            
+            /* Borders & Effects */
+            --border: rgba(255, 255, 255, 0.06);
+            --border-accent: rgba(0, 229, 199, 0.3);
+            --glass: rgba(18, 20, 31, 0.85);
+            --shadow-lg: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+            --shadow-glow: 0 0 40px rgba(0, 229, 199, 0.15);
+            
+            /* Sizing */
             --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 20px;
+            --radius-xl: 28px;
         }
         
         * { margin: 0; padding: 0; box-sizing: border-box; }
         
-        body {
-            font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: var(--bg-primary);
-            color: var(--text-primary);
-            min-height: 100vh;
-            overflow-x: hidden;
+        html, body {
+            height: 100%;
+            overflow: hidden;
         }
         
-        /* Header */
+        body {
+            font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-void);
+            color: var(--text-primary);
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+        }
+        
+        /* ============================================
+           App Container
+        ============================================ */
+        .app {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            height: 100dvh;
+        }
+        
+        /* ============================================
+           Header - Floating glass style
+        ============================================ */
         .header {
-            background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-card) 100%);
-            padding: 1rem 1.5rem;
-            border-bottom: 1px solid var(--border-color);
-            position: sticky;
-            top: 0;
+            position: absolute;
+            top: 16px;
+            left: 16px;
+            right: 16px;
             z-index: 1000;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            padding: 12px 20px;
+            background: var(--glass);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-lg);
+            animation: slideDown 0.5s ease-out;
         }
         
-        .header h1 {
-            font-size: 1.25rem;
-            font-weight: 700;
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .logo {
             display: flex;
             align-items: center;
-            gap: 0.5rem;
+            gap: 10px;
         }
         
-        .header h1 span { color: var(--accent-primary); }
+        .logo-icon {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, var(--accent) 0%, #00b4a0 100%);
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            box-shadow: 0 4px 15px rgba(0, 229, 199, 0.3);
+        }
         
-        .user-btn {
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 50%;
+        .logo-text {
+            font-size: 1.3rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+        }
+        
+        .logo-text span {
+            background: linear-gradient(135deg, var(--accent) 0%, #00b4a0 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .header-actions {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .icon-btn {
             width: 40px;
             height: 40px;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            font-size: 1.2rem;
+            font-size: 1.1rem;
+            transition: all 0.2s ease;
         }
         
-        /* Tabs */
-        .tabs {
-            display: flex;
-            background: var(--bg-secondary);
-            border-bottom: 1px solid var(--border-color);
+        .icon-btn:hover {
+            background: var(--bg-hover);
+            border-color: var(--border-accent);
+            transform: translateY(-2px);
         }
         
-        .tab {
+        /* ============================================
+           Map Container
+        ============================================ */
+        .map-container {
             flex: 1;
-            padding: 1rem;
-            text-align: center;
-            cursor: pointer;
-            font-weight: 500;
-            font-size: 0.9rem;
-            color: var(--text-secondary);
-            border-bottom: 2px solid transparent;
-            transition: all 0.2s;
+            position: relative;
         }
         
-        .tab.active {
-            color: var(--accent-primary);
-            border-bottom-color: var(--accent-primary);
-        }
-        
-        .tab-content { display: none; }
-        .tab-content.active { display: block; }
-        
-        /* Map */
         #map {
-            height: calc(100vh - 200px);
-            min-height: 400px;
             width: 100%;
+            height: 100%;
+            background: var(--bg-deep);
         }
         
-        .map-controls {
+        /* Custom Leaflet styles */
+        .leaflet-control-zoom {
+            border: none !important;
+            box-shadow: var(--shadow-lg) !important;
+        }
+        
+        .leaflet-control-zoom a {
+            background: var(--glass) !important;
+            backdrop-filter: blur(20px) !important;
+            color: var(--text-primary) !important;
+            border: 1px solid var(--border) !important;
+            width: 36px !important;
+            height: 36px !important;
+            line-height: 36px !important;
+            font-size: 18px !important;
+        }
+        
+        .leaflet-control-zoom a:hover {
+            background: var(--bg-elevated) !important;
+            color: var(--accent) !important;
+        }
+        
+        .leaflet-control-zoom-in {
+            border-radius: var(--radius-md) var(--radius-md) 0 0 !important;
+        }
+        
+        .leaflet-control-zoom-out {
+            border-radius: 0 0 var(--radius-md) var(--radius-md) !important;
+        }
+        
+        /* ============================================
+           Status Card - Route Risk
+        ============================================ */
+        .status-card {
             position: absolute;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
+            top: 90px;
+            right: 16px;
             z-index: 1000;
-            display: flex;
-            gap: 0.5rem;
-        }
-        
-        .map-btn {
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            color: var(--text-primary);
-            padding: 0.75rem 1.25rem;
-            border-radius: var(--radius-sm);
-            font-family: inherit;
-            font-weight: 600;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            transition: all 0.2s;
-        }
-        
-        .map-btn:hover { background: var(--bg-secondary); }
-        .map-btn.primary {
-            background: var(--accent-primary);
-            color: var(--bg-primary);
-            border-color: var(--accent-primary);
-        }
-        
-        /* Status Panel */
-        .status-panel {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            z-index: 1000;
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: var(--radius);
-            padding: 1rem;
+            background: var(--glass);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 20px;
             min-width: 200px;
-            box-shadow: var(--shadow);
+            box-shadow: var(--shadow-lg);
+            display: none;
+            animation: fadeInScale 0.3s ease-out;
         }
         
-        .status-panel h3 {
-            font-size: 0.85rem;
-            color: var(--text-secondary);
-            margin-bottom: 0.5rem;
+        @keyframes fadeInScale {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        
+        .status-card.active { display: block; }
+        
+        .status-label {
+            font-size: 0.75rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+        }
+        
+        .risk-display {
+            display: flex;
+            align-items: baseline;
+            gap: 8px;
         }
         
         .risk-score {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 2rem;
-            font-weight: 700;
-        }
-        
-        .risk-score.high { color: var(--accent-warning); }
-        .risk-score.moderate { color: var(--accent-caution); }
-        .risk-score.low { color: var(--accent-primary); }
-        
-        .risk-level {
-            font-size: 0.9rem;
-            margin-top: 0.25rem;
-        }
-        
-        /* Routes List */
-        .routes-container {
-            padding: 1rem;
-            max-width: 600px;
-            margin: 0 auto;
-        }
-        
-        .route-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: var(--radius);
-            padding: 1rem;
-            margin-bottom: 1rem;
-        }
-        
-        .route-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 0.75rem;
-        }
-        
-        .route-name {
-            font-weight: 600;
-            font-size: 1rem;
-        }
-        
-        .route-actions {
-            display: flex;
-            gap: 0.5rem;
-        }
-        
-        .route-btn {
-            background: none;
-            border: none;
-            color: var(--text-secondary);
-            cursor: pointer;
-            padding: 0.25rem;
-            font-size: 1.1rem;
-        }
-        
-        .route-btn:hover { color: var(--text-primary); }
-        
-        .route-stats {
-            display: flex;
-            gap: 1rem;
-            font-size: 0.85rem;
-            color: var(--text-secondary);
-        }
-        
-        .toggle-switch {
-            position: relative;
-            width: 48px;
-            height: 26px;
-        }
-        
-        .toggle-switch input { opacity: 0; width: 0; height: 0; }
-        
-        .toggle-slider {
-            position: absolute;
-            cursor: pointer;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: var(--bg-secondary);
-            border-radius: 26px;
-            border: 1px solid var(--border-color);
-            transition: 0.3s;
-        }
-        
-        .toggle-slider:before {
-            position: absolute;
-            content: "";
-            height: 20px;
-            width: 20px;
-            left: 2px;
-            bottom: 2px;
-            background: var(--text-secondary);
-            border-radius: 50%;
-            transition: 0.3s;
-        }
-        
-        input:checked + .toggle-slider {
-            background: var(--accent-primary);
-            border-color: var(--accent-primary);
-        }
-        
-        input:checked + .toggle-slider:before {
-            transform: translateX(22px);
-            background: var(--bg-primary);
-        }
-        
-        /* Alerts List */
-        .alert-card {
-            background: var(--bg-card);
-            border-radius: var(--radius);
-            padding: 1rem;
-            margin-bottom: 0.75rem;
-            border-left: 4px solid var(--accent-warning);
-        }
-        
-        .alert-card.school { border-left-color: var(--accent-school); }
-        .alert-card.traffic { border-left-color: var(--accent-caution); }
-        
-        .alert-time {
-            font-size: 0.75rem;
-            color: var(--text-muted);
-        }
-        
-        /* Modal */
-        .modal-overlay {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0, 0, 0, 0.8);
-            z-index: 2000;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        .modal-overlay.active { display: flex; }
-        
-        .modal {
-            background: var(--bg-card);
-            border-radius: var(--radius);
-            padding: 1.5rem;
-            width: 90%;
-            max-width: 400px;
-            max-height: 80vh;
-            overflow-y: auto;
-        }
-        
-        .modal h2 {
-            font-size: 1.25rem;
-            margin-bottom: 1rem;
-        }
-        
-        .form-group {
-            margin-bottom: 1rem;
-        }
-        
-        .form-group label {
-            display: block;
-            font-size: 0.85rem;
-            color: var(--text-secondary);
-            margin-bottom: 0.5rem;
-        }
-        
-        .form-group input, .form-group select {
-            width: 100%;
-            padding: 0.75rem;
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-            border-radius: var(--radius-sm);
-            color: var(--text-primary);
-            font-family: inherit;
-            font-size: 1rem;
-        }
-        
-        .btn {
-            padding: 0.75rem 1.5rem;
-            border: none;
-            border-radius: var(--radius-sm);
-            font-family: inherit;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        
-        .btn-primary {
-            background: var(--accent-primary);
-            color: var(--bg-primary);
-        }
-        
-        .btn-secondary {
-            background: var(--bg-secondary);
-            color: var(--text-primary);
-            border: 1px solid var(--border-color);
-        }
-        
-        .btn-block { width: 100%; }
-        
-        .btn-group {
-            display: flex;
-            gap: 0.5rem;
-            margin-top: 1rem;
-        }
-        
-        .btn-group .btn { flex: 1; }
-        
-        /* Empty State */
-        .empty-state {
-            text-align: center;
-            padding: 3rem 1rem;
-            color: var(--text-secondary);
-        }
-        
-        .empty-state .icon {
+            font-family: 'IBM Plex Mono', monospace;
             font-size: 3rem;
-            margin-bottom: 1rem;
+            font-weight: 700;
+            line-height: 1;
+            background: linear-gradient(135deg, var(--accent) 0%, #00b4a0 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
         
-        /* Loading */
-        .loading {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 2rem;
+        .risk-score.high {
+            background: linear-gradient(135deg, var(--danger) 0%, #ff6b81 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+        }
+        
+        .risk-score.moderate {
+            background: linear-gradient(135deg, var(--warning) 0%, #ffc048 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+        }
+        
+        .risk-score.low {
+            background: linear-gradient(135deg, var(--safe) 0%, #7bed9f 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+        }
+        
+        .risk-unit {
+            font-size: 0.9rem;
             color: var(--text-secondary);
+            font-weight: 500;
         }
         
-        .spinner {
-            width: 24px;
-            height: 24px;
-            border: 2px solid var(--border-color);
-            border-top-color: var(--accent-primary);
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-            margin-right: 0.5rem;
+        .risk-description {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-top: 8px;
+            padding-top: 12px;
+            border-top: 1px solid var(--border);
         }
         
-        @keyframes spin { to { transform: rotate(360deg); } }
-        
-        /* Hazard Legend */
-        .legend {
+        /* ============================================
+           Legend Card
+        ============================================ */
+        .legend-card {
             position: absolute;
-            bottom: 80px;
-            left: 10px;
+            bottom: 100px;
+            left: 16px;
             z-index: 1000;
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: var(--radius-sm);
-            padding: 0.75rem;
-            font-size: 0.75rem;
+            background: var(--glass);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 14px 16px;
+            box-shadow: var(--shadow-lg);
+            animation: slideUp 0.5s ease-out 0.2s both;
+        }
+        
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .legend-title {
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-muted);
+            margin-bottom: 10px;
+        }
+        
+        .legend-items {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
         }
         
         .legend-item {
             display: flex;
             align-items: center;
-            gap: 0.5rem;
-            margin-bottom: 0.25rem;
+            gap: 10px;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
         }
         
         .legend-dot {
-            width: 12px;
-            height: 12px;
+            width: 10px;
+            height: 10px;
             border-radius: 50%;
+            box-shadow: 0 0 10px currentColor;
         }
         
-        .legend-dot.permit { background: var(--accent-warning); }
-        .legend-dot.traffic { background: var(--accent-caution); }
-        .legend-dot.school { background: var(--accent-school); }
+        .legend-dot.demolition { background: var(--danger); color: var(--danger); }
+        .legend-dot.traffic { background: var(--warning); color: var(--warning); }
+        .legend-dot.school { background: var(--school); color: var(--school); }
+        
+        /* ============================================
+           Bottom Action Bar
+        ============================================ */
+        .action-bar {
+            position: absolute;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            display: flex;
+            gap: 10px;
+            padding: 10px;
+            background: var(--glass);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-xl);
+            box-shadow: var(--shadow-lg), var(--shadow-glow);
+            animation: slideUp 0.5s ease-out 0.3s both;
+        }
+        
+        .action-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 20px;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            white-space: nowrap;
+        }
+        
+        .action-btn:hover {
+            background: var(--bg-hover);
+            border-color: var(--border-accent);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+        }
+        
+        .action-btn.primary {
+            background: linear-gradient(135deg, var(--accent) 0%, #00b4a0 100%);
+            border: none;
+            color: var(--bg-void);
+            font-weight: 600;
+            box-shadow: 0 4px 20px rgba(0, 229, 199, 0.3);
+        }
+        
+        .action-btn.primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(0, 229, 199, 0.4);
+        }
+        
+        .action-btn.danger {
+            background: var(--danger);
+            border: none;
+            color: white;
+        }
+        
+        .action-btn .icon {
+            font-size: 1.1rem;
+        }
+        
+        /* ============================================
+           Bottom Navigation Tabs
+        ============================================ */
+        .nav-tabs {
+            display: flex;
+            background: var(--bg-deep);
+            border-top: 1px solid var(--border);
+            padding: 8px 16px;
+            padding-bottom: max(8px, env(safe-area-inset-bottom));
+        }
+        
+        .nav-tab {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            padding: 10px;
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-family: inherit;
+            font-size: 0.7rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border-radius: var(--radius-md);
+        }
+        
+        .nav-tab:hover {
+            color: var(--text-secondary);
+            background: var(--bg-surface);
+        }
+        
+        .nav-tab.active {
+            color: var(--accent);
+        }
+        
+        .nav-tab .icon {
+            font-size: 1.4rem;
+            transition: transform 0.2s ease;
+        }
+        
+        .nav-tab.active .icon {
+            transform: scale(1.1);
+        }
+        
+        /* ============================================
+           Tab Content Panels
+        ============================================ */
+        .tab-panel {
+            display: none;
+            flex: 1;
+            overflow-y: auto;
+            background: var(--bg-void);
+        }
+        
+        .tab-panel.active { display: flex; flex-direction: column; }
+        
+        .panel-content {
+            flex: 1;
+            padding: 20px;
+            max-width: 600px;
+            margin: 0 auto;
+            width: 100%;
+        }
+        
+        .panel-header {
+            padding: 24px 20px 16px;
+            background: linear-gradient(180deg, var(--bg-deep) 0%, var(--bg-void) 100%);
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .panel-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+        
+        .panel-subtitle {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+        
+        /* ============================================
+           Route Cards
+        ============================================ */
+        .route-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 18px;
+            margin-bottom: 12px;
+            transition: all 0.2s ease;
+        }
+        
+        .route-card:hover {
+            border-color: var(--border-accent);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+        }
+        
+        .route-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 12px;
+        }
+        
+        .route-name {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-bright);
+        }
+        
+        .route-meta {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+        
+        .route-actions {
+            display: flex;
+            gap: 6px;
+        }
+        
+        .route-action-btn {
+            width: 32px;
+            height: 32px;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            transition: all 0.2s ease;
+        }
+        
+        .route-action-btn:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+        
+        .route-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 12px;
+            border-top: 1px solid var(--border);
+        }
+        
+        .route-stat {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+        
+        .route-stat .dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--safe);
+        }
+        
+        /* Toggle Switch */
+        .toggle {
+            position: relative;
+            width: 44px;
+            height: 24px;
+            cursor: pointer;
+        }
+        
+        .toggle input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        
+        .toggle-track {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--bg-hover);
+            border-radius: 12px;
+            transition: all 0.3s ease;
+        }
+        
+        .toggle-thumb {
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 20px;
+            height: 20px;
+            background: var(--text-secondary);
+            border-radius: 50%;
+            transition: all 0.3s ease;
+        }
+        
+        .toggle input:checked + .toggle-track {
+            background: var(--accent);
+        }
+        
+        .toggle input:checked + .toggle-track .toggle-thumb {
+            transform: translateX(20px);
+            background: var(--bg-void);
+        }
+        
+        /* ============================================
+           Alert Cards
+        ============================================ */
+        .alert-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 16px;
+            margin-bottom: 12px;
+            border-left: 3px solid var(--danger);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .alert-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--danger-glow);
+            opacity: 0.5;
+            pointer-events: none;
+        }
+        
+        .alert-card.school { border-left-color: var(--school); }
+        .alert-card.school::before { background: var(--school-glow); }
+        
+        .alert-card.traffic { border-left-color: var(--warning); }
+        .alert-card.traffic::before { background: var(--warning-glow); }
+        
+        .alert-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 8px;
+            position: relative;
+        }
+        
+        .alert-type {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+        
+        .alert-time {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            font-family: 'IBM Plex Mono', monospace;
+        }
+        
+        .alert-description {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            position: relative;
+        }
+        
+        /* ============================================
+           Empty State
+        ============================================ */
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 60px 20px;
+            text-align: center;
+        }
+        
+        .empty-icon {
+            width: 80px;
+            height: 80px;
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            margin-bottom: 20px;
+        }
+        
+        .empty-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        
+        .empty-description {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            max-width: 280px;
+        }
+        
+        /* ============================================
+           Modal
+        ============================================ */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(4, 5, 10, 0.9);
+            backdrop-filter: blur(8px);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            animation: fadeIn 0.2s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        .modal-overlay.active { display: flex; }
+        
+        .modal {
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-xl);
+            padding: 28px;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: var(--shadow-lg);
+            animation: modalSlide 0.3s ease;
+        }
+        
+        @keyframes modalSlide {
+            from { opacity: 0; transform: translateY(20px) scale(0.98); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        
+        .modal-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .form-group {
+            margin-bottom: 18px;
+        }
+        
+        .form-label {
+            display: block;
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+        
+        .form-input, .form-select {
+            width: 100%;
+            padding: 14px 16px;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 1rem;
+            transition: all 0.2s ease;
+        }
+        
+        .form-input:focus, .form-select:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-soft);
+        }
+        
+        .form-input::placeholder {
+            color: var(--text-muted);
+        }
+        
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 24px;
+        }
+        
+        .btn-group .action-btn {
+            flex: 1;
+            justify-content: center;
+        }
+        
+        /* ============================================
+           Loading State
+        ============================================ */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            padding: 40px;
+            color: var(--text-secondary);
+        }
+        
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* ============================================
+           Custom Scrollbar
+        ============================================ */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: var(--bg-hover);
+            border-radius: 3px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-muted);
+        }
+        
+        /* ============================================
+           Responsive
+        ============================================ */
+        @media (max-width: 480px) {
+            .header {
+                top: 12px;
+                left: 12px;
+                right: 12px;
+                padding: 10px 16px;
+            }
+            
+            .action-bar {
+                left: 12px;
+                right: 12px;
+                transform: none;
+                bottom: 80px;
+            }
+            
+            .action-btn {
+                flex: 1;
+                justify-content: center;
+                padding: 12px 14px;
+                font-size: 0.85rem;
+            }
+            
+            .action-btn .label { display: none; }
+            .action-btn .icon { font-size: 1.3rem; }
+            
+            .legend-card {
+                bottom: 160px;
+            }
+            
+            .status-card {
+                top: 80px;
+                left: 12px;
+                right: 12px;
+                min-width: auto;
+            }
+        }
     </style>
 </head>
 <body>
-    <!-- Header -->
-    <header class="header">
-        <h1>🌬️ Air<span>Scout</span></h1>
-        <button class="user-btn" onclick="showSettings()">⚙️</button>
-    </header>
-    
-    <!-- Tabs -->
-    <nav class="tabs">
-        <div class="tab active" data-tab="map">🗺️ Map</div>
-        <div class="tab" data-tab="routes">📍 Routes</div>
-        <div class="tab" data-tab="alerts">🔔 Alerts</div>
-    </nav>
-    
-    <!-- Map Tab -->
-    <div class="tab-content active" id="tab-map">
-        <div id="map"></div>
-        
-        <!-- Status Panel -->
-        <div class="status-panel" id="statusPanel" style="display: none;">
-            <h3>Route Risk Score</h3>
-            <div class="risk-score" id="riskScore">--</div>
-            <div class="risk-level" id="riskLevel">Draw a route to check</div>
+    <div class="app">
+        <!-- Map Tab -->
+        <div class="tab-panel active" id="tab-map">
+            <div class="map-container">
+                <!-- Header -->
+                <header class="header">
+                    <div class="logo">
+                        <div class="logo-icon">🌬️</div>
+                        <div class="logo-text">Air<span>Scout</span></div>
+                    </div>
+                    <div class="header-actions">
+                        <button class="icon-btn" onclick="refreshHazards()" title="Refresh">🔄</button>
+                        <button class="icon-btn" onclick="showSettings()" title="Settings">⚙️</button>
+                    </div>
+                </header>
+                
+                <!-- Map -->
+                <div id="map"></div>
+                
+                <!-- Status Card -->
+                <div class="status-card" id="statusCard">
+                    <div class="status-label">Route Risk Score</div>
+                    <div class="risk-display">
+                        <div class="risk-score" id="riskScore">--</div>
+                        <div class="risk-unit">/ 100</div>
+                    </div>
+                    <div class="risk-description" id="riskDescription">
+                        Draw a route to analyze hazards
+                    </div>
+                </div>
+                
+                <!-- Legend -->
+                <div class="legend-card">
+                    <div class="legend-title">Hazard Types</div>
+                    <div class="legend-items">
+                        <div class="legend-item">
+                            <div class="legend-dot demolition"></div>
+                            <span>Demolition Site</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-dot traffic"></div>
+                            <span>Traffic Congestion</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-dot school"></div>
+                            <span>School Zone (Peak)</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Action Bar -->
+                <div class="action-bar">
+                    <button class="action-btn" onclick="startDrawing()">
+                        <span class="icon">✏️</span>
+                        <span class="label">Draw Route</span>
+                    </button>
+                    <button class="action-btn" onclick="clearRoute()">
+                        <span class="icon">🗑️</span>
+                        <span class="label">Clear</span>
+                    </button>
+                    <button class="action-btn primary" id="saveBtn" onclick="showSaveModal()" style="display: none;">
+                        <span class="icon">💾</span>
+                        <span class="label">Save Route</span>
+                    </button>
+                </div>
+            </div>
         </div>
         
-        <!-- Legend -->
-        <div class="legend">
-            <div class="legend-item">
-                <div class="legend-dot permit"></div>
-                <span>Demolition</span>
+        <!-- Routes Tab -->
+        <div class="tab-panel" id="tab-routes">
+            <div class="panel-header">
+                <h1 class="panel-title">My Routes</h1>
+                <p class="panel-subtitle">Saved routes with hazard alerts</p>
             </div>
-            <div class="legend-item">
-                <div class="legend-dot traffic"></div>
-                <span>Traffic</span>
-            </div>
-            <div class="legend-item">
-                <div class="legend-dot school"></div>
-                <span>School Zone</span>
+            <div class="panel-content" id="routesContainer">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <span>Loading routes...</span>
+                </div>
             </div>
         </div>
         
-        <!-- Map Controls -->
-        <div class="map-controls">
-            <button class="map-btn" onclick="startDrawing()">✏️ Draw Route</button>
-            <button class="map-btn" onclick="clearRoute()">🗑️ Clear</button>
-            <button class="map-btn primary" id="saveRouteBtn" onclick="showSaveModal()" style="display: none;">
-                💾 Save Route
+        <!-- Alerts Tab -->
+        <div class="tab-panel" id="tab-alerts">
+            <div class="panel-header">
+                <h1 class="panel-title">Alerts</h1>
+                <p class="panel-subtitle">Recent hazard notifications</p>
+            </div>
+            <div class="panel-content" id="alertsContainer">
+                <div class="empty-state">
+                    <div class="empty-icon">🔔</div>
+                    <h3 class="empty-title">No Recent Alerts</h3>
+                    <p class="empty-description">Save a route to receive notifications when hazards are detected</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Bottom Navigation -->
+        <nav class="nav-tabs">
+            <button class="nav-tab active" data-tab="map">
+                <span class="icon">🗺️</span>
+                <span>Map</span>
             </button>
-        </div>
+            <button class="nav-tab" data-tab="routes">
+                <span class="icon">📍</span>
+                <span>Routes</span>
+            </button>
+            <button class="nav-tab" data-tab="alerts">
+                <span class="icon">🔔</span>
+                <span>Alerts</span>
+            </button>
+        </nav>
     </div>
     
-    <!-- Routes Tab -->
-    <div class="tab-content" id="tab-routes">
-        <div class="routes-container" id="routesContainer">
-            <div class="loading">
-                <div class="spinner"></div>
-                <span>Loading routes...</span>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Alerts Tab -->
-    <div class="tab-content" id="tab-alerts">
-        <div class="routes-container" id="alertsContainer">
-            <div class="empty-state">
-                <div class="icon">🔔</div>
-                <h3>No Recent Alerts</h3>
-                <p>Save a route to receive hazard notifications</p>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Save Route Modal -->
+    <!-- Save Modal -->
     <div class="modal-overlay" id="saveModal">
         <div class="modal">
-            <h2>💾 Save Route</h2>
+            <h2 class="modal-title">💾 Save Route</h2>
             <div class="form-group">
-                <label>Route Name</label>
-                <input type="text" id="routeName" placeholder="e.g., Morning Commute">
+                <label class="form-label">Route Name</label>
+                <input type="text" class="form-input" id="routeName" placeholder="e.g., School Commute">
             </div>
             <div class="form-group">
-                <label>Alert Threshold</label>
-                <select id="severityThreshold">
+                <label class="form-label">Alert Threshold</label>
+                <select class="form-select" id="severityThreshold">
                     <option value="1">All hazards (1+)</option>
                     <option value="2">Low and above (2+)</option>
                     <option value="3" selected>Moderate and above (3+)</option>
@@ -530,8 +1051,8 @@
                 </select>
             </div>
             <div class="btn-group">
-                <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
-                <button class="btn btn-primary" onclick="saveRoute()">Save & Subscribe</button>
+                <button class="action-btn" onclick="closeModal()">Cancel</button>
+                <button class="action-btn primary" onclick="saveRoute()">Save & Subscribe</button>
             </div>
         </div>
     </div>
@@ -541,13 +1062,13 @@
     <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
-    <!-- Load configuration (created by deployment or from config.js) -->
+    <!-- Load configuration -->
     <script src="config.js"></script>
     
     <script>
-        // ============================================================
-        // Configuration - Loaded from config.js
-        // ============================================================
+        // ============================================
+        // Configuration
+        // ============================================
         const SUPABASE_URL = (typeof AIRSCOUT_CONFIG !== 'undefined') ? AIRSCOUT_CONFIG.SUPABASE_URL : '';
         const SUPABASE_ANON_KEY = (typeof AIRSCOUT_CONFIG !== 'undefined') ? AIRSCOUT_CONFIG.SUPABASE_ANON_KEY : '';
         const VAPID_PUBLIC_KEY = (typeof AIRSCOUT_CONFIG !== 'undefined') ? AIRSCOUT_CONFIG.VAPID_PUBLIC_KEY : '';
@@ -556,26 +1077,25 @@
         const ROUTE_BUFFER_METERS = 25;
         
         const HAZARD_CONFIG = {
-            PERMIT: { color: '#ff6b6b', icon: '🏗️', label: 'Demolition' },
-            TRAFFIC: { color: '#ffa500', icon: '🚗', label: 'Traffic' },
-            SCHOOL: { color: '#4ecdc4', icon: '🏫', label: 'School Zone' }
+            PERMIT: { color: '#ff4757', icon: '🏗️', label: 'Demolition', class: 'demolition' },
+            TRAFFIC: { color: '#ffa502', icon: '🚗', label: 'Traffic', class: 'traffic' },
+            SCHOOL: { color: '#3498db', icon: '🏫', label: 'School Zone', class: 'school' }
         };
         
-        // ============================================================
+        // ============================================
         // State
-        // ============================================================
+        // ============================================
         let map = null;
         let drawControl = null;
-        let drawnRoute = null;
-        let hazardMarkers = [];
         let routeLayer = null;
+        let hazardMarkers = [];
         let supabase = null;
         let currentUser = null;
         let currentRouteCoords = [];
         
-        // ============================================================
+        // ============================================
         // Initialize
-        // ============================================================
+        // ============================================
         document.addEventListener('DOMContentLoaded', async () => {
             initTabs();
             initMap();
@@ -583,33 +1103,47 @@
             await loadHazards();
             await loadUserRoutes();
             
-            // Refresh hazards every 2 minutes
+            // Auto-refresh hazards
             setInterval(loadHazards, 120000);
         });
         
         function initTabs() {
-            document.querySelectorAll('.tab').forEach(tab => {
+            document.querySelectorAll('.nav-tab').forEach(tab => {
                 tab.addEventListener('click', () => {
-                    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-                    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                    const tabId = tab.dataset.tab;
+                    
+                    document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+                    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
                     
                     tab.classList.add('active');
-                    document.getElementById(`tab-${tab.dataset.tab}`).classList.add('active');
+                    document.getElementById(`tab-${tabId}`).classList.add('active');
                     
-                    if (tab.dataset.tab === 'map') {
-                        map.invalidateSize();
+                    if (tabId === 'map') {
+                        setTimeout(() => map.invalidateSize(), 100);
                     }
                 });
             });
         }
         
         function initMap() {
-            map = L.map('map').setView(CHICAGO_CENTER, 12);
+            map = L.map('map', {
+                zoomControl: false
+            }).setView(CHICAGO_CENTER, 12);
             
-            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-                attribution: '© OpenStreetMap © CARTO',
-                maxZoom: 19
+            // Add zoom control to bottom-right
+            L.control.zoom({ position: 'bottomright' }).addTo(map);
+            
+            // Dark map tiles - Stadia Alidade Smooth Dark
+            L.tileLayer('https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png', {
+                maxZoom: 20,
+                attribution: '© Stadia Maps © OpenMapTiles © OpenStreetMap'
             }).addTo(map);
+            
+            // Fallback to CartoDB if Stadia fails
+            // L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            //     maxZoom: 19,
+            //     attribution: '© OpenStreetMap © CARTO'
+            // }).addTo(map);
             
             // Initialize draw control
             const drawnItems = new L.FeatureGroup();
@@ -619,8 +1153,9 @@
                 draw: {
                     polyline: {
                         shapeOptions: {
-                            color: '#00d4aa',
-                            weight: 4
+                            color: '#00e5c7',
+                            weight: 5,
+                            opacity: 0.9
                         }
                     },
                     polygon: false,
@@ -629,27 +1164,20 @@
                     marker: false,
                     circlemarker: false
                 },
-                edit: {
-                    featureGroup: drawnItems
-                }
+                edit: { featureGroup: drawnItems }
             });
             
             map.on(L.Draw.Event.CREATED, async (e) => {
-                if (routeLayer) {
-                    map.removeLayer(routeLayer);
-                }
+                if (routeLayer) map.removeLayer(routeLayer);
                 
                 routeLayer = e.layer;
                 map.addLayer(routeLayer);
                 
-                // Extract coordinates
                 currentRouteCoords = routeLayer.getLatLngs().map(ll => [ll.lng, ll.lat]);
                 
-                // Check route for hazards
                 await checkRoute(currentRouteCoords);
                 
-                // Show save button
-                document.getElementById('saveRouteBtn').style.display = 'flex';
+                document.getElementById('saveBtn').style.display = 'flex';
             });
         }
         
@@ -661,7 +1189,6 @@
             
             supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
             
-            // Get or create anonymous user ID
             currentUser = localStorage.getItem('airscout_user_id');
             if (!currentUser) {
                 currentUser = 'anon_' + Math.random().toString(36).substr(2, 9);
@@ -669,9 +1196,9 @@
             }
         }
         
-        // ============================================================
+        // ============================================
         // Route Drawing
-        // ============================================================
+        // ============================================
         function startDrawing() {
             new L.Draw.Polyline(map, drawControl.options.draw.polyline).enable();
         }
@@ -682,24 +1209,34 @@
                 routeLayer = null;
             }
             currentRouteCoords = [];
-            document.getElementById('saveRouteBtn').style.display = 'none';
-            document.getElementById('statusPanel').style.display = 'none';
+            document.getElementById('saveBtn').style.display = 'none';
+            document.getElementById('statusCard').classList.remove('active');
+            
+            // Clear hazard highlights
+            hazardMarkers.forEach(m => {
+                if (m._highlighted) {
+                    m.setStyle({ weight: 2, opacity: 0.7 });
+                    m._highlighted = false;
+                }
+            });
         }
         
-        // ============================================================
+        // ============================================
         // Route Checking
-        // ============================================================
+        // ============================================
         async function checkRoute(coords) {
-            const panel = document.getElementById('statusPanel');
-            panel.style.display = 'block';
-            document.getElementById('riskScore').textContent = '...';
-            document.getElementById('riskLevel').textContent = 'Checking route...';
+            const card = document.getElementById('statusCard');
+            const scoreEl = document.getElementById('riskScore');
+            const descEl = document.getElementById('riskDescription');
+            
+            card.classList.add('active');
+            scoreEl.textContent = '...';
+            descEl.textContent = 'Analyzing route...';
             
             try {
                 let result;
                 
                 if (supabase) {
-                    // Use Supabase RPC
                     const routeWkt = `LINESTRING(${coords.map(c => `${c[0]} ${c[1]}`).join(', ')})`;
                     
                     const { data, error } = await supabase.rpc('check_route_hazards', {
@@ -709,83 +1246,72 @@
                     });
                     
                     if (error) throw error;
-                    result = calculateLocalRisk(data || []);
+                    result = calculateRisk(data || []);
                 } else {
-                    // Demo mode
-                    result = {
-                        score: Math.floor(Math.random() * 60) + 20,
-                        level: 'MODERATE',
-                        hazards: getDemoHazards()
-                    };
+                    result = { score: Math.floor(Math.random() * 60) + 20, level: 'moderate', hazards: getDemoHazards() };
                 }
                 
-                // Update UI
-                const scoreEl = document.getElementById('riskScore');
                 scoreEl.textContent = result.score;
-                scoreEl.className = `risk-score ${result.level.toLowerCase()}`;
+                scoreEl.className = `risk-score ${result.level}`;
                 
-                document.getElementById('riskLevel').textContent = 
-                    `${result.level} Risk • ${result.hazards?.length || 0} hazards`;
+                const hazardCount = result.hazards?.length || 0;
+                descEl.textContent = hazardCount > 0 
+                    ? `${result.level.toUpperCase()} risk • ${hazardCount} hazard${hazardCount > 1 ? 's' : ''} nearby`
+                    : 'No hazards detected on this route';
                 
-                // Highlight hazards on route
                 highlightRouteHazards(result.hazards || []);
                 
             } catch (error) {
                 console.error('Error checking route:', error);
-                document.getElementById('riskLevel').textContent = 'Error checking route';
+                descEl.textContent = 'Error analyzing route';
             }
         }
         
-        function calculateLocalRisk(hazards) {
-            if (!hazards.length) {
-                return { score: 0, level: 'LOW', hazards: [] };
-            }
+        function calculateRisk(hazards) {
+            if (!hazards.length) return { score: 0, level: 'low', hazards: [] };
             
-            let totalScore = 0;
-            hazards.forEach(h => {
+            let totalScore = hazards.reduce((sum, h) => {
                 const distWeight = Math.max(0, 1 - (h.distance_meters / ROUTE_BUFFER_METERS));
-                totalScore += distWeight * (h.severity / 5) * 25;
-            });
+                return sum + (distWeight * (h.severity / 5) * 25);
+            }, 0);
             
             const score = Math.min(100, Math.round(totalScore));
-            let level = 'LOW';
-            if (score >= 70) level = 'HIGH';
-            else if (score >= 40) level = 'MODERATE';
+            let level = 'low';
+            if (score >= 70) level = 'high';
+            else if (score >= 40) level = 'moderate';
             
             return { score, level, hazards };
         }
         
         function highlightRouteHazards(hazards) {
-            // Clear existing
-            hazardMarkers.forEach(m => map.removeLayer(m));
-            hazardMarkers = [];
-            
             hazards.forEach(h => {
                 const config = HAZARD_CONFIG[h.type] || HAZARD_CONFIG.PERMIT;
                 
                 const marker = L.circleMarker([h.latitude, h.longitude], {
-                    radius: 10 + h.severity * 2,
+                    radius: 12 + h.severity * 2,
                     fillColor: config.color,
                     color: '#fff',
                     weight: 3,
                     opacity: 1,
-                    fillOpacity: 0.8
+                    fillOpacity: 0.9
                 }).addTo(map);
                 
                 marker.bindPopup(`
-                    <strong>${config.icon} ${config.label}</strong><br>
-                    ${h.description}<br>
-                    <em>Severity: ${h.severity}/5</em><br>
-                    <em>Distance: ${Math.round(h.distance_meters)}m</em>
+                    <div style="font-family: 'Outfit', sans-serif; padding: 4px;">
+                        <strong style="font-size: 14px;">${config.icon} ${config.label}</strong><br>
+                        <span style="color: #666; font-size: 12px;">${h.description || 'Active hazard'}</span><br>
+                        <span style="color: #888; font-size: 11px;">Severity: ${h.severity}/5 • ${Math.round(h.distance_meters)}m away</span>
+                    </div>
                 `);
                 
+                marker._highlighted = true;
                 hazardMarkers.push(marker);
             });
         }
         
-        // ============================================================
+        // ============================================
         // Hazard Loading
-        // ============================================================
+        // ============================================
         async function loadHazards() {
             try {
                 let hazards;
@@ -804,24 +1330,29 @@
                     hazards = getDemoHazards();
                 }
                 
-                // Update existing markers
                 updateMapMarkers(hazards);
-                
             } catch (error) {
                 console.error('Error loading hazards:', error);
             }
         }
         
+        function refreshHazards() {
+            loadHazards();
+        }
+        
         function updateMapMarkers(hazards) {
-            // Only update if no route is being checked
-            if (routeLayer) return;
-            
-            hazardMarkers.forEach(m => map.removeLayer(m));
-            hazardMarkers = [];
+            // Clear non-highlighted markers
+            hazardMarkers = hazardMarkers.filter(m => {
+                if (!m._highlighted) {
+                    map.removeLayer(m);
+                    return false;
+                }
+                return true;
+            });
             
             hazards.forEach(h => {
-                const lat = h.latitude || (h.location?.coordinates?.[1]);
-                const lng = h.longitude || (h.location?.coordinates?.[0]);
+                const lat = h.latitude || h.location?.coordinates?.[1];
+                const lng = h.longitude || h.location?.coordinates?.[0];
                 if (!lat || !lng) return;
                 
                 const config = HAZARD_CONFIG[h.type] || HAZARD_CONFIG.PERMIT;
@@ -829,25 +1360,27 @@
                 const marker = L.circleMarker([lat, lng], {
                     radius: 6 + h.severity,
                     fillColor: config.color,
-                    color: '#fff',
+                    color: config.color,
                     weight: 2,
-                    opacity: 0.8,
-                    fillOpacity: 0.6
+                    opacity: 0.7,
+                    fillOpacity: 0.4
                 }).addTo(map);
                 
                 marker.bindPopup(`
-                    <strong>${config.icon} ${config.label}</strong><br>
-                    ${h.description || 'No description'}<br>
-                    <em>Severity: ${h.severity}/5</em>
+                    <div style="font-family: 'Outfit', sans-serif; padding: 4px;">
+                        <strong>${config.icon} ${config.label}</strong><br>
+                        <span style="color: #666; font-size: 12px;">${h.description || 'No description'}</span><br>
+                        <span style="color: #888; font-size: 11px;">Severity: ${h.severity}/5</span>
+                    </div>
                 `);
                 
                 hazardMarkers.push(marker);
             });
         }
         
-        // ============================================================
-        // Route Saving & Subscriptions
-        // ============================================================
+        // ============================================
+        // Route Saving
+        // ============================================
         function showSaveModal() {
             document.getElementById('saveModal').classList.add('active');
         }
@@ -869,13 +1402,12 @@
                 if (supabase) {
                     const routeWkt = `LINESTRING(${currentRouteCoords.map(c => `${c[0]} ${c[1]}`).join(', ')})`;
                     
-                    // Get push subscription if available
                     let pushToken = null;
                     if ('Notification' in window && Notification.permission === 'granted') {
                         pushToken = await getPushSubscription();
                     }
                     
-                    const { data, error } = await supabase.rpc('subscribe_to_route', {
+                    const { error } = await supabase.rpc('subscribe_to_route', {
                         p_user_id: currentUser,
                         p_route_wkt: routeWkt,
                         p_route_name: name,
@@ -884,25 +1416,16 @@
                     });
                     
                     if (error) throw error;
-                    
-                    alert('Route saved! You will receive alerts for hazards on this route.');
+                    alert('✅ Route saved! You\'ll receive alerts for hazards on this route.');
                 } else {
-                    // Demo mode - save to localStorage
                     const routes = JSON.parse(localStorage.getItem('airscout_routes') || '[]');
-                    routes.push({
-                        id: Date.now(),
-                        name,
-                        coords: currentRouteCoords,
-                        threshold,
-                        alertsEnabled: true
-                    });
+                    routes.push({ id: Date.now(), name, coords: currentRouteCoords, threshold, alertsEnabled: true });
                     localStorage.setItem('airscout_routes', JSON.stringify(routes));
                     alert('Route saved locally (demo mode)');
                 }
                 
                 closeModal();
                 loadUserRoutes();
-                
             } catch (error) {
                 console.error('Error saving route:', error);
                 alert('Failed to save route');
@@ -916,22 +1439,19 @@
                 let routes;
                 
                 if (supabase) {
-                    const { data, error } = await supabase.rpc('get_user_subscriptions', {
-                        p_user_id: currentUser
-                    });
-                    
+                    const { data, error } = await supabase.rpc('get_user_subscriptions', { p_user_id: currentUser });
                     if (error) throw error;
                     routes = data;
                 } else {
                     routes = JSON.parse(localStorage.getItem('airscout_routes') || '[]');
                 }
                 
-                if (!routes || routes.length === 0) {
+                if (!routes?.length) {
                     container.innerHTML = `
                         <div class="empty-state">
-                            <div class="icon">📍</div>
-                            <h3>No Saved Routes</h3>
-                            <p>Draw a route on the map and save it to receive alerts</p>
+                            <div class="empty-icon">📍</div>
+                            <h3 class="empty-title">No Saved Routes</h3>
+                            <p class="empty-description">Draw a route on the map and save it to receive hazard alerts</p>
                         </div>
                     `;
                     return;
@@ -940,18 +1460,26 @@
                 container.innerHTML = routes.map(route => `
                     <div class="route-card">
                         <div class="route-header">
-                            <span class="route-name">${route.route_name || route.name}</span>
+                            <div>
+                                <div class="route-name">${route.route_name || route.name}</div>
+                                <div class="route-meta">Alert threshold: ${route.severity_threshold || route.threshold}+</div>
+                            </div>
                             <div class="route-actions">
-                                <button class="route-btn" onclick="viewRoute('${route.id}')">👁️</button>
-                                <button class="route-btn" onclick="deleteRoute('${route.id}')">🗑️</button>
+                                <button class="route-action-btn" onclick="viewRoute('${route.id}')" title="View">👁️</button>
+                                <button class="route-action-btn" onclick="deleteRoute('${route.id}')" title="Delete">🗑️</button>
                             </div>
                         </div>
-                        <div class="route-stats">
-                            <span>Threshold: ${route.severity_threshold || route.threshold}+</span>
-                            <label class="toggle-switch">
+                        <div class="route-footer">
+                            <div class="route-stat">
+                                <div class="dot"></div>
+                                <span>Alerts ${route.alert_enabled !== false ? 'enabled' : 'disabled'}</span>
+                            </div>
+                            <label class="toggle">
                                 <input type="checkbox" ${route.alert_enabled !== false ? 'checked' : ''} 
                                        onchange="toggleAlerts('${route.id}', this.checked)">
-                                <span class="toggle-slider"></span>
+                                <div class="toggle-track">
+                                    <div class="toggle-thumb"></div>
+                                </div>
                             </label>
                         </div>
                     </div>
@@ -959,7 +1487,7 @@
                 
             } catch (error) {
                 console.error('Error loading routes:', error);
-                container.innerHTML = '<p class="error">Failed to load routes</p>';
+                container.innerHTML = '<p style="text-align: center; color: var(--text-muted); padding: 20px;">Failed to load routes</p>';
             }
         }
         
@@ -977,33 +1505,32 @@
             if (!confirm('Delete this route?')) return;
             
             if (supabase) {
-                await supabase.rpc('delete_subscription', {
-                    p_subscription_id: routeId,
-                    p_user_id: currentUser
-                });
+                await supabase.rpc('delete_subscription', { p_subscription_id: routeId, p_user_id: currentUser });
             } else {
                 const routes = JSON.parse(localStorage.getItem('airscout_routes') || '[]');
-                const filtered = routes.filter(r => r.id != routeId);
-                localStorage.setItem('airscout_routes', JSON.stringify(filtered));
+                localStorage.setItem('airscout_routes', JSON.stringify(routes.filter(r => r.id != routeId)));
             }
             
             loadUserRoutes();
         }
         
-        // ============================================================
+        function viewRoute(routeId) {
+            // Switch to map tab
+            document.querySelector('.nav-tab[data-tab="map"]').click();
+        }
+        
+        // ============================================
         // Push Notifications
-        // ============================================================
+        // ============================================
         async function getPushSubscription() {
             try {
                 const reg = await navigator.serviceWorker.ready;
                 let sub = await reg.pushManager.getSubscription();
                 
                 if (!sub) {
-                    // Request permission and subscribe
                     const permission = await Notification.requestPermission();
                     if (permission !== 'granted') return null;
                     
-                    // Use VAPID public key from config
                     if (!VAPID_PUBLIC_KEY) {
                         console.warn('VAPID_PUBLIC_KEY not configured');
                         return null;
@@ -1022,28 +1549,29 @@
             }
         }
         
-        // ============================================================
+        // ============================================
         // Demo Data
-        // ============================================================
+        // ============================================
         function getDemoHazards() {
             return [
-                { id: 1, type: 'PERMIT', severity: 4, description: 'Active demolition at 123 W Madison St', latitude: 41.8819, longitude: -87.6278, distance_meters: 15 },
-                { id: 2, type: 'SCHOOL', severity: 5, description: 'School Zone - Lincoln Elementary', latitude: 41.9219, longitude: -87.6534, distance_meters: 8 },
-                { id: 3, type: 'TRAFFIC', severity: 3, description: 'Traffic congestion on I-90/94', latitude: 41.8729, longitude: -87.6215, distance_meters: 22 },
-                { id: 4, type: 'PERMIT', severity: 3, description: 'Construction at 456 N State St', latitude: 41.8901, longitude: -87.6281, distance_meters: 18 }
+                { id: 1, type: 'PERMIT', severity: 4, description: 'Active demolition - Madison St', latitude: 41.8819, longitude: -87.6278, distance_meters: 15 },
+                { id: 2, type: 'SCHOOL', severity: 5, description: 'Lincoln Elementary - Peak hours', latitude: 41.9219, longitude: -87.6534, distance_meters: 8 },
+                { id: 3, type: 'TRAFFIC', severity: 3, description: 'Congestion on I-90/94', latitude: 41.8729, longitude: -87.6215, distance_meters: 22 },
+                { id: 4, type: 'PERMIT', severity: 3, description: 'Construction - State St', latitude: 41.8901, longitude: -87.6281, distance_meters: 18 }
             ];
         }
         
         function showSettings() {
-            alert('Settings coming soon!\\n\\nUser ID: ' + (currentUser || 'Not set'));
+            alert('⚙️ Settings\n\nUser ID: ' + (currentUser || 'Not set') + '\nSupabase: ' + (supabase ? 'Connected' : 'Demo mode'));
         }
         
         // Register service worker
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('sw.js')
-                .then(reg => console.log('SW registered'))
+                .then(() => console.log('Service Worker registered'))
                 .catch(err => console.warn('SW registration failed:', err));
         }
     </script>
 </body>
 </html>
+

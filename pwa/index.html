@@ -1575,15 +1575,15 @@
                 let hazards;
                 
                 if (supabase) {
-                    const { data, error } = await supabase
-                        .from('hazards_active')
-                        .select('*')
-                        .gt('expires_at', new Date().toISOString())
-                        .order('severity', { ascending: false })
-                        .limit(200);
+                    // Use RPC function that properly extracts lat/lng from PostGIS geometry
+                    const { data, error } = await supabase.rpc('get_map_hazards', {
+                        p_min_severity: 1,
+                        p_limit: 500
+                    });
                     
                     if (error) throw error;
-                    hazards = data;
+                    hazards = data || [];
+                    console.log(`Loaded ${hazards.length} hazards from database`);
                 } else {
                     hazards = getDemoHazards();
                 }
@@ -1591,6 +1591,8 @@
                 updateMapMarkers(hazards);
             } catch (error) {
                 console.error('Error loading hazards:', error);
+                // Fallback to demo data on error
+                updateMapMarkers(getDemoHazards());
             }
         }
         

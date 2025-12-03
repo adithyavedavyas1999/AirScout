@@ -246,6 +246,43 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- ============================================================
+-- FUNCTION: get_map_hazards
+-- Get all active hazards for map display (with proper lat/lng)
+-- ============================================================
+CREATE OR REPLACE FUNCTION get_map_hazards(
+    p_min_severity INTEGER DEFAULT 1,
+    p_limit INTEGER DEFAULT 500
+)
+RETURNS TABLE (
+    id UUID,
+    type VARCHAR(20),
+    severity INTEGER,
+    description TEXT,
+    longitude FLOAT,
+    latitude FLOAT,
+    expires_at TIMESTAMPTZ,
+    source_id VARCHAR(100)
+) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT 
+        h.id,
+        h.type,
+        h.severity,
+        h.description,
+        ST_X(h.location::geometry)::FLOAT as longitude,
+        ST_Y(h.location::geometry)::FLOAT as latitude,
+        h.expires_at,
+        h.source_id
+    FROM hazards_active h
+    WHERE h.expires_at > NOW()
+      AND h.severity >= p_min_severity
+    ORDER BY h.severity DESC, h.created_at DESC
+    LIMIT p_limit;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- ============================================================
 -- Grant execute permissions to authenticated users
 -- ============================================================
 GRANT EXECUTE ON FUNCTION check_route_hazards TO authenticated;
@@ -255,6 +292,7 @@ GRANT EXECUTE ON FUNCTION update_subscription_alerts TO authenticated;
 GRANT EXECUTE ON FUNCTION delete_subscription TO authenticated;
 GRANT EXECUTE ON FUNCTION get_active_hazards_summary TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION get_nearby_hazards TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION get_map_hazards TO anon, authenticated;
 
 -- ============================================================
 -- COMMENTS
@@ -263,4 +301,5 @@ COMMENT ON FUNCTION check_route_hazards IS 'Check a route (25m buffer) for activ
 COMMENT ON FUNCTION subscribe_to_route IS 'Subscribe a user to receive alerts for a route';
 COMMENT ON FUNCTION get_user_subscriptions IS 'Get all route subscriptions for a user';
 COMMENT ON FUNCTION get_nearby_hazards IS 'Get hazards near a location for the PWA';
+COMMENT ON FUNCTION get_map_hazards IS 'Get all active hazards for map display';
 

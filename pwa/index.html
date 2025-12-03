@@ -832,6 +832,164 @@
         }
         
         /* ============================================
+           Settings Modal Extras
+        ============================================ */
+        .theme-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        
+        .theme-option {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            padding: 16px;
+            background: var(--bg-elevated);
+            border: 2px solid var(--border);
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+        
+        .theme-option:hover {
+            border-color: var(--text-muted);
+        }
+        
+        .theme-option.active {
+            border-color: var(--accent);
+            background: var(--accent-soft);
+        }
+        
+        .theme-preview {
+            width: 48px;
+            height: 32px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+        }
+        
+        .dark-preview {
+            background: linear-gradient(135deg, #0a0b12 0%, #1a1d2e 100%);
+        }
+        
+        .light-preview {
+            background: linear-gradient(135deg, #ffffff 0%, #f0f2f5 100%);
+        }
+        
+        .map-style-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+        
+        .map-style-option {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            padding: 12px;
+            background: var(--bg-elevated);
+            border: 2px solid var(--border);
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        
+        .map-style-option:hover {
+            border-color: var(--text-muted);
+        }
+        
+        .map-style-option.active {
+            border-color: var(--accent);
+            background: var(--accent-soft);
+        }
+        
+        .map-style-preview {
+            width: 100%;
+            height: 40px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+        }
+        
+        .settings-info {
+            margin-top: 20px;
+            padding: 16px;
+            background: var(--bg-elevated);
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border);
+        }
+        
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+        }
+        
+        .info-row:not(:last-child) {
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .info-label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+        
+        .info-value {
+            font-size: 0.8rem;
+            font-family: 'IBM Plex Mono', monospace;
+            color: var(--text-secondary);
+        }
+        
+        /* ============================================
+           Light Mode Theme
+        ============================================ */
+        body.light-mode {
+            --bg-void: #f8f9fc;
+            --bg-deep: #f0f2f5;
+            --bg-surface: #ffffff;
+            --bg-elevated: #f5f7fa;
+            --bg-hover: #e8ecf2;
+            
+            --text-bright: #1a1a2e;
+            --text-primary: #2d3748;
+            --text-secondary: #64748b;
+            --text-muted: #94a3b8;
+            
+            --border: rgba(0, 0, 0, 0.08);
+            --border-accent: rgba(0, 229, 199, 0.4);
+            --glass: rgba(255, 255, 255, 0.9);
+            --shadow-lg: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+            --shadow-glow: 0 0 40px rgba(0, 229, 199, 0.1);
+            
+            --accent: #00b4a0;
+        }
+        
+        body.light-mode .logo-text span {
+            background: linear-gradient(135deg, #00b4a0 0%, #009688 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+        }
+        
+        body.light-mode .action-btn.primary {
+            background: linear-gradient(135deg, #00b4a0 0%, #009688 100%);
+        }
+        
+        body.light-mode .leaflet-control-zoom a {
+            background: rgba(255, 255, 255, 0.95) !important;
+            color: var(--text-primary) !important;
+        }
+        
+        /* ============================================
            Loading State
         ============================================ */
         .loading {
@@ -1057,6 +1215,64 @@
         </div>
     </div>
     
+    <!-- Settings Modal -->
+    <div class="modal-overlay" id="settingsModal">
+        <div class="modal">
+            <h2 class="modal-title">⚙️ Settings</h2>
+            
+            <div class="form-group">
+                <label class="form-label">App Theme</label>
+                <div class="theme-grid">
+                    <button class="theme-option active" data-app-theme="dark" onclick="setAppTheme('dark')">
+                        <div class="theme-preview dark-preview"></div>
+                        <span>Dark</span>
+                    </button>
+                    <button class="theme-option" data-app-theme="light" onclick="setAppTheme('light')">
+                        <div class="theme-preview light-preview"></div>
+                        <span>Light</span>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Map Style</label>
+                <div class="map-style-grid">
+                    <button class="map-style-option active" data-map-style="dark_all" onclick="setMapStyle('dark_all')">
+                        <div class="map-style-preview" style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);"></div>
+                        <span>Midnight</span>
+                    </button>
+                    <button class="map-style-option" data-map-style="light_all" onclick="setMapStyle('light_all')">
+                        <div class="map-style-preview" style="background: linear-gradient(135deg, #e8e8e8 0%, #f5f5f5 50%, #ffffff 100%);"></div>
+                        <span>Light</span>
+                    </button>
+                    <button class="map-style-option" data-map-style="voyager" onclick="setMapStyle('voyager')">
+                        <div class="map-style-preview" style="background: linear-gradient(135deg, #faf6f1 0%, #e8dfd5 50%, #d4c4b0 100%);"></div>
+                        <span>Voyager</span>
+                    </button>
+                    <button class="map-style-option" data-map-style="rastertiles/voyager" onclick="setMapStyle('rastertiles/voyager')">
+                        <div class="map-style-preview" style="background: linear-gradient(135deg, #f2efe9 0%, #e5e1db 50%, #c5d6c8 100%);"></div>
+                        <span>Explorer</span>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="settings-info">
+                <div class="info-row">
+                    <span class="info-label">User ID</span>
+                    <span class="info-value" id="settingsUserId">--</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Connection</span>
+                    <span class="info-value" id="settingsConnection">--</span>
+                </div>
+            </div>
+            
+            <div class="btn-group">
+                <button class="action-btn primary" onclick="closeSettingsModal()" style="flex: 1;">Done</button>
+            </div>
+        </div>
+    </div>
+    
     <!-- Scripts -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
@@ -1082,6 +1298,30 @@
             SCHOOL: { color: '#3498db', icon: '🏫', label: 'School Zone', class: 'school' }
         };
         
+        // Map style configurations (all free, no API key)
+        const MAP_STYLES = {
+            dark_all: {
+                url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+                name: 'Midnight'
+            },
+            light_all: {
+                url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+                name: 'Light'
+            },
+            voyager: {
+                url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+                name: 'Voyager'
+            },
+            'rastertiles/voyager': {
+                url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager_labels_under/{z}/{x}/{y}{r}.png',
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+                name: 'Explorer'
+            }
+        };
+        
         // ============================================
         // State
         // ============================================
@@ -1092,11 +1332,17 @@
         let supabase = null;
         let currentUser = null;
         let currentRouteCoords = [];
+        let currentTileLayer = null;
+        let currentMapStyle = localStorage.getItem('airscout_map_style') || 'dark_all';
+        let currentAppTheme = localStorage.getItem('airscout_app_theme') || 'dark';
         
         // ============================================
         // Initialize
         // ============================================
         document.addEventListener('DOMContentLoaded', async () => {
+            // Load saved theme preferences
+            loadSavedThemes();
+            
             initTabs();
             initMap();
             await initSupabase();
@@ -1106,6 +1352,23 @@
             // Auto-refresh hazards
             setInterval(loadHazards, 120000);
         });
+        
+        function loadSavedThemes() {
+            // Apply saved app theme
+            if (currentAppTheme === 'light') {
+                document.body.classList.add('light-mode');
+            }
+            
+            // Update theme option buttons
+            document.querySelectorAll('.theme-option').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.appTheme === currentAppTheme);
+            });
+            
+            // Update map style buttons
+            document.querySelectorAll('.map-style-option').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.mapStyle === currentMapStyle);
+            });
+        }
         
         function initTabs() {
             document.querySelectorAll('.nav-tab').forEach(tab => {
@@ -1133,10 +1396,11 @@
             // Add zoom control to bottom-right
             L.control.zoom({ position: 'bottomright' }).addTo(map);
             
-            // Dark map tiles - CartoDB Dark Matter (free, no API key required)
-            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            // Load saved map style (default: dark_all)
+            const style = MAP_STYLES[currentMapStyle] || MAP_STYLES.dark_all;
+            currentTileLayer = L.tileLayer(style.url, {
                 maxZoom: 19,
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
+                attribution: style.attribution
             }).addTo(map);
             
             // Initialize draw control
@@ -1555,8 +1819,66 @@
             ];
         }
         
+        // ============================================
+        // Settings & Theme
+        // ============================================
         function showSettings() {
-            alert('⚙️ Settings\n\nUser ID: ' + (currentUser || 'Not set') + '\nSupabase: ' + (supabase ? 'Connected' : 'Demo mode'));
+            // Update settings info
+            document.getElementById('settingsUserId').textContent = currentUser || 'Not set';
+            document.getElementById('settingsConnection').textContent = supabase ? '✓ Connected' : 'Demo mode';
+            
+            // Update active states
+            document.querySelectorAll('.theme-option').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.appTheme === currentAppTheme);
+            });
+            document.querySelectorAll('.map-style-option').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.mapStyle === currentMapStyle);
+            });
+            
+            document.getElementById('settingsModal').classList.add('active');
+        }
+        
+        function closeSettingsModal() {
+            document.getElementById('settingsModal').classList.remove('active');
+        }
+        
+        function setAppTheme(theme) {
+            currentAppTheme = theme;
+            localStorage.setItem('airscout_app_theme', theme);
+            
+            if (theme === 'light') {
+                document.body.classList.add('light-mode');
+            } else {
+                document.body.classList.remove('light-mode');
+            }
+            
+            // Update button states
+            document.querySelectorAll('.theme-option').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.appTheme === theme);
+            });
+        }
+        
+        function setMapStyle(styleKey) {
+            const style = MAP_STYLES[styleKey];
+            if (!style) return;
+            
+            currentMapStyle = styleKey;
+            localStorage.setItem('airscout_map_style', styleKey);
+            
+            // Remove old tile layer and add new one
+            if (currentTileLayer) {
+                map.removeLayer(currentTileLayer);
+            }
+            
+            currentTileLayer = L.tileLayer(style.url, {
+                maxZoom: 19,
+                attribution: style.attribution
+            }).addTo(map);
+            
+            // Update button states
+            document.querySelectorAll('.map-style-option').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.mapStyle === styleKey);
+            });
         }
         
         // Register service worker

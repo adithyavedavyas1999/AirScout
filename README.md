@@ -1,108 +1,99 @@
-# 🌬️ AirScout
+# AirScout
 
-**Risk-Based Routing Engine for Chicago** — Protecting children with asthma from hyper-local pollution sources like idling buses and demolition dust.
+**Hazard-Aware Routing Engine for Chicago** — Protecting children with asthma from hyper-local pollution sources like idling buses, demolition dust, and poor air quality.
 
 ---
 
-## 🎯 Mission: Protecting Children with Asthma
+## Mission: Protecting Children with Asthma
 
 > **1 in 10 children in Chicago has asthma** — and exposure to localized air pollution can trigger severe attacks. AirScout helps parents and caregivers find safer walking routes to school.
 
 AirScout is specifically designed to protect **asthma-affected children** by:
 
-- 🚸 **Identifying pollution hotspots** along school routes
-- ⚠️ **Alerting parents** before their child walks through hazardous areas
-- 🏫 **Flagging school zones** during high-risk drop-off/pick-up times when diesel buses idle
-- 📱 **Providing real-time updates** so families can make informed decisions
-
-**This isn't about air quality indexes** — it's about avoiding the specific block where a demolition crew is kicking up dust, or the intersection where 15 school buses are idling their diesel engines.
-
----
-
-## 📖 Overview
-
-AirScout is a **real-time hazard detection system** that helps Chicago families avoid pollution hotspots. Unlike traditional air quality apps that measure ambient conditions, AirScout identifies **specific pollution sources** and warns users when they're on their child's route to school.
-
-### The Problem
-
-- 🏗️ **Demolition sites** generate harmful particulate matter (PM2.5, PM10) that can trigger asthma attacks
-- 🚌 **Diesel buses idling** near schools create localized pollution 5-10x worse than background levels
-- 🚗 **Traffic congestion** concentrates vehicle exhaust at intersections children must cross
-- 😷 **Children are more vulnerable** — they breathe faster and their lungs are still developing
-
-### The Solution
-
-AirScout combines multiple Chicago data sources to create a **risk-based routing engine** that:
-
-1. **Validates** demolition permits against 311 complaints (no "zombie permits")
-2. **Hard-codes** school zones as high-risk during drop-off/pick-up hours (7-9 AM, 2-4 PM)
-3. **Buffers** user routes by 25 meters to catch hazards on adjacent blocks
-4. **Alerts** parents via push notifications when hazards appear on saved routes
+- Identifying **pollution hotspots** along school routes
+- Alerting parents **before** their child walks through hazardous areas
+- Flagging **school zones** during high-risk drop-off/pick-up times when diesel buses idle
+- Providing **real-time AQI and weather-adjusted scoring**
+- **Finding the safest route** between two points using hazard-aware routing
 
 ---
 
-## ✨ Key Features
+## Key Features
 
 | Feature | Description |
 |---------|-------------|
-| 🧟 **Zombie Permit Fix** | Demolition permits only count if validated by a 311 complaint within 200m in the last 48 hours |
-| 🏫 **School Zone Hard Rule** | Areas near schools are automatically HIGH RISK (severity 5) during 7-9 AM and 2-4 PM |
-| 📐 **25m Geospatial Buffer** | Routes are buffered by 25 meters to catch hazards on adjacent blocks |
-| 🔔 **Push Notifications** | Real-time alerts when new hazards appear on your saved routes |
-| 🗺️ **Interactive Map** | Draw routes, see hazards, get instant risk scores |
-| 📊 **Admin Dashboard** | Streamlit app for monitoring and validation |
+| **Zombie Permit Fix** | Demolition permits only count if validated by a 311 complaint within 200m in 48 hours |
+| **School Zone Hard Rule** | Areas near schools are automatically HIGH RISK (severity 5) during 7-9 AM and 2-4 PM |
+| **25m Geospatial Buffer** | Routes are buffered by 25 meters to catch hazards on adjacent blocks |
+| **Hazard-Aware Routing** | OSRM-powered safe route finder that ranks alternatives by pollution exposure |
+| **Real-Time AQI** | EPA AirNow integration creates hazards when air quality degrades |
+| **Wind-Adjusted Scoring** | OpenWeatherMap wind data amplifies hazard scores when conditions spread particulate matter |
+| **Supabase Realtime** | Live map updates when hazards change — no manual refresh needed |
+| **Push Notifications** | Web Push alerts when new hazards appear on saved routes |
+| **Supabase Auth** | Anonymous authentication for secure user identification |
+| **Interactive Map** | Draw routes, find safe routes, see AQI data, get instant risk scores |
+| **Admin Dashboard** | Streamlit app for monitoring hazards, AQI, weather, and subscriptions |
 
 ---
 
-## 🏗️ Architecture
+## Architecture
 
 ```
+┌────────────────────────────────────────────────────────────────┐
+│               Data Sources                                      │
+│  ┌─────────────┐ ┌─────────────┐ ┌──────────┐ ┌────────────┐  │
+│  │ Chicago Data│ │  EPA AirNow │ │OpenWeather│ │    OSRM    │  │
+│  │   Portal    │ │   (AQI)     │ │  (Wind)   │ │  (Routing) │  │
+│  └──────┬──────┘ └──────┬──────┘ └─────┬─────┘ └─────┬──────┘  │
+└─────────┼───────────────┼──────────────┼─────────────┼─────────┘
+          │               │              │             │
+          ▼               ▼              ▼             │
 ┌─────────────────────────────────────────────────────────────────┐
-│                     Chicago Data Portal                         │
-│  (Permits, 311 Complaints, Schools, Traffic)                    │
-└─────────────────────┬───────────────────────────────────────────┘
-                      │
-                      ▼
+│                 GitHub Actions (CRON)                             │
+│  ┌────────┐ ┌────────┐ ┌────────┐ ┌──────┐ ┌────────┐          │
+│  │Permits │ │Schools │ │Traffic │ │ AQI  │ │Weather │          │
+│  │ (6hr)  │ │(daily) │ │(15min) │ │(15m) │ │ (15m)  │          │
+│  └────────┘ └────────┘ └────────┘ └──────┘ └────────┘          │
+└───────────────────────────┬─────────────────────────────────────┘
+                            │
+                            ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│                   GitHub Actions (CRON)                         │
-│  ┌──────────────┐ ┌──────────────┐ ┌──────────────┐             │
-│  │   Permits    │ │   Schools    │ │   Traffic    │             │
-│  │  (6 hours)   │ │   (daily)    │ │  (15 min)    │             │
-│  └──────────────┘ └──────────────┘ └──────────────┘             │
-└─────────────────────┬───────────────────────────────────────────┘
-                      │
-                      ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                 Supabase (PostgreSQL + PostGIS)                 │
+│            Supabase (PostgreSQL + PostGIS + Realtime)            │
 │  ┌──────────────┐ ┌──────────────┐ ┌──────────────┐             │
 │  │hazards_active│ │   schools    │ │subscriptions │             │
 │  └──────────────┘ └──────────────┘ └──────────────┘             │
-└─────────────────────┬───────────────────────────────────────────┘
-                      │
-          ┌───────────┴───────────┐
-          ▼                       ▼
-┌──────────────────┐    ┌──────────────────┐
-│  Streamlit Admin │    │    PWA (User)    │
-│    Dashboard     │    │  Route Alerts    │
-└──────────────────┘    └──────────────────┘
+│  ┌──────────────┐ ┌──────────────┐                               │
+│  │weather_context│ │alert_history │                               │
+│  └──────────────┘ └──────────────┘                               │
+└───────────────────────────┬─────────────────────────────────────┘
+                            │
+              ┌─────────────┴─────────────┐
+              ▼                           ▼
+┌────────────────────┐         ┌────────────────────┐
+│  Streamlit Admin   │         │    PWA (User)      │◄──── OSRM
+│    Dashboard       │         │  Safe Route Finder │
+└────────────────────┘         └────────────────────┘
 ```
 
 ---
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 | Layer | Technology |
 |-------|------------|
-| **Data Ingestion** | Python, Pandas, Sodapy, Geopandas |
-| **Database** | Supabase (PostgreSQL + PostGIS) |
+| **Data Ingestion** | Python, Pandas, Sodapy, GeoPandas |
+| **Database** | Supabase (PostgreSQL + PostGIS + Realtime) |
 | **Admin Dashboard** | Streamlit |
-| **User Frontend** | HTML/JS PWA with Leaflet |
+| **User Frontend** | HTML/JS PWA with Leaflet, Supabase Auth |
+| **Routing Engine** | OSRM (Open Source Routing Machine) |
+| **Air Quality** | EPA AirNow API |
+| **Weather** | OpenWeatherMap API |
 | **Orchestration** | GitHub Actions (CRON) |
-| **Push Notifications** | Web Push API |
+| **Push Notifications** | Web Push API + VAPID |
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 
@@ -110,48 +101,35 @@ AirScout combines multiple Chicago data sources to create a **risk-based routing
 - Supabase account (free)
 - GitHub account
 
-### 1. Clone the Repository
+### 1. Clone & Set Up
 
 ```bash
 git clone https://github.com/adithyavedavyas1999/AirScout.git
 cd AirScout
-```
-
-### 2. Set Up Python Environment
-
-```bash
 python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### 3. Configure Supabase
-
-1. Create a new project at [supabase.com](https://supabase.com)
-2. Go to **Settings → Database** and copy your credentials
-3. Create your environment file:
+### 2. Configure Environment
 
 ```bash
 cp env.example .env
 ```
 
-Edit `.env` with your Supabase credentials:
+Edit `.env` with your credentials (Supabase, AirNow, OpenWeatherMap).
 
-```env
-SUPABASE_DB_HOST=db.xxxxx.supabase.co
-SUPABASE_DB_PASSWORD=your-password
-```
+### 3. Run Database Migrations
 
-### 4. Run Database Migrations
-
-In Supabase SQL Editor, run these files in order:
+In Supabase SQL Editor, run in order:
 
 1. `database/001_enable_postgis.sql`
 2. `database/002_create_tables.sql`
 3. `database/003_alert_history.sql`
 4. `database/004_api_functions.sql`
+5. `database/005_enhanced_features.sql`
 
-### 5. Configure PWA
+### 4. Configure PWA
 
 ```bash
 cp pwa/config.example.js pwa/config.js
@@ -159,23 +137,24 @@ cp pwa/config.example.js pwa/config.js
 
 Edit `pwa/config.js` with your Supabase URL and anon key.
 
-### 6. Run Data Pipelines
+### 5. Run Data Pipelines
 
 ```bash
-# Ingest school data (run once)
-python data_pipeline/ingest_schools.py
-
-# Ingest demolition permits
-python data_pipeline/ingest_permits.py
-
-# Generate school zone hazards (during peak hours)
-python data_pipeline/generate_school_hazards.py
-
-# Ingest traffic data
-python data_pipeline/ingest_traffic.py
+python -m data_pipeline.ingest_schools
+python -m data_pipeline.ingest_permits
+python -m data_pipeline.generate_school_hazards
+python -m data_pipeline.ingest_traffic
+python -m data_pipeline.ingest_aqi
+python -m data_pipeline.ingest_weather
 ```
 
-### 7. Launch Admin Dashboard
+### 6. Run Tests
+
+```bash
+pytest tests/ -v
+```
+
+### 7. Launch Dashboard
 
 ```bash
 streamlit run dashboard/app.py
@@ -184,46 +163,62 @@ streamlit run dashboard/app.py
 ### 8. Test PWA Locally
 
 ```bash
-cd pwa
-python -m http.server 8080
-# Open http://localhost:8080
+cd pwa && python -m http.server 8080
 ```
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 AirScout/
-├── .github/workflows/          # GitHub Actions
-│   ├── data_pipelines.yml      # All ingestion jobs
-│   └── alert_service.yml       # Route checking & notifications
+├── .github/workflows/
+│   ├── data_pipelines.yml      # All ingestion jobs (permits, schools, traffic, AQI, weather)
+│   ├── alert_service.yml       # Route checking & push notifications
+│   ├── deploy_pwa.yml          # GitHub Pages deployment
+│   └── tests.yml               # CI test runner
 │
-├── data_pipeline/              # Python scripts
-│   ├── ingest_permits.py       # Zombie Permit logic
+├── data_pipeline/
+│   ├── db.py                   # Centralized database connection
+│   ├── scoring.py              # Centralized risk scoring logic
+│   ├── config.py               # All configuration (data portal, AQI, weather, routing)
+│   ├── ingest_permits.py       # Zombie Permit validation
 │   ├── ingest_schools.py       # School data
-│   ├── ingest_traffic.py       # Traffic + school override
-│   ├── generate_school_hazards.py  # Peak hour hazards
-│   ├── check_route.py          # 25m buffer route checker
+│   ├── ingest_traffic.py       # Traffic + school zone override
+│   ├── ingest_aqi.py           # EPA AirNow AQI data
+│   ├── ingest_weather.py       # Wind/weather for scoring
+│   ├── generate_school_hazards.py
+│   ├── check_route.py          # Route checker + OSRM safe routing
 │   └── alert_service.py        # Push notification service
 │
-├── database/                   # SQL migrations
+├── database/
 │   ├── 001_enable_postgis.sql
 │   ├── 002_create_tables.sql
 │   ├── 003_alert_history.sql
-│   └── 004_api_functions.sql
+│   ├── 004_api_functions.sql
+│   └── 005_enhanced_features.sql
 │
-├── dashboard/                  # Streamlit admin
-│   └── app.py
+├── dashboard/
+│   └── app.py                  # Streamlit admin (hazards, AQI, weather, subscriptions)
 │
-├── pwa/                        # Progressive Web App
-│   ├── index.html
+├── pwa/
+│   ├── index.html              # PWA with auth, realtime, safe routing, AQI
 │   ├── config.example.js
 │   ├── manifest.json
 │   └── sw.js
 │
+├── supabase/functions/
+│   └── check-route/index.ts    # Edge function with safe-route support
+│
+├── tests/
+│   ├── test_scoring.py
+│   ├── test_config.py
+│   ├── test_check_route.py
+│   ├── test_ingest_aqi.py
+│   └── test_weather.py
+│
 ├── scripts/
-│   └── generate_vapid_keys.py  # Push notification keys
+│   └── generate_vapid_keys.py
 │
 ├── requirements.txt
 └── env.example
@@ -231,72 +226,32 @@ AirScout/
 
 ---
 
-## 🔧 Configuration
+## Configuration
 
 ### Environment Variables
 
-#### For Local Development (.env file)
+| Variable | Description | Required |
+|----------|-------------|----------|
+| `SUPABASE_DB_HOST` | Database host | Yes |
+| `SUPABASE_DB_PASSWORD` | Database password | Yes |
+| `SUPABASE_DB_PORT` | Database port (5432 local, 6543 pooler) | No |
+| `SUPABASE_DB_USER` | Database user | No |
+| `SUPABASE_URL` | Supabase API URL | For PWA |
+| `SUPABASE_ANON_KEY` | Supabase publishable key | For PWA |
+| `AIRNOW_API_KEY` | EPA AirNow API key | For AQI |
+| `OPENWEATHER_API_KEY` | OpenWeatherMap key | For weather |
+| `CHICAGO_DATA_APP_TOKEN` | Chicago Data Portal token | Optional |
+| `VAPID_PUBLIC_KEY` | Push notification public key | For push |
+| `VAPID_PRIVATE_KEY` | Push notification private key | For push |
+| `VAPID_EMAIL` | Contact email for push | For push |
 
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `SUPABASE_DB_HOST` | Direct database host | `db.xxx.supabase.co` |
-| `SUPABASE_DB_PORT` | Direct port | `5432` |
-| `SUPABASE_DB_USER` | Database user | `postgres` |
-| `SUPABASE_DB_PASSWORD` | Database password | Your password |
-| `SUPABASE_DB_NAME` | Database name | `postgres` |
+### GitHub Secrets
 
-#### For GitHub Actions (use pooler)
-
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `SUPABASE_DB_HOST` | Pooler host | `aws-0-us-east-1.pooler.supabase.com` |
-| `SUPABASE_DB_PORT` | Pooler port | `6543` |
-| `SUPABASE_DB_USER` | Pooler user | `postgres.your-project-ref` |
-
-> **Why different?** Supabase blocks direct connections from cloud servers. The pooler is designed for external/cloud connections.
-
-### GitHub Secrets (for Actions)
-
-Add these secrets in **Settings → Secrets and variables → Actions**:
-
-| Secret | Description | Example |
-|--------|-------------|---------|
-| `SUPABASE_DB_HOST` | Pooler host (NOT direct) | `aws-0-us-east-1.pooler.supabase.com` |
-| `SUPABASE_DB_PORT` | Pooler port | `6543` |
-| `SUPABASE_DB_USER` | Pooler username | `postgres.your-project-ref` |
-| `SUPABASE_DB_PASSWORD` | Database password | Your password |
-| `SUPABASE_URL` | Supabase API URL | `https://xxx.supabase.co` |
-| `SUPABASE_ANON_KEY` | Publishable API key | Your anon/publishable key |
-| `VAPID_PUBLIC_KEY` | Push notification public key | Generated key |
-| `VAPID_PRIVATE_KEY` | Push notification private key | Generated key |
-| `VAPID_EMAIL` | Contact email for push | Your email |
-
-> **Note:** GitHub Actions requires the Supabase **connection pooler** (not direct connection) because cloud servers are blocked from direct database access.
+Add all environment variables above as GitHub Secrets for Actions.
 
 ---
 
-## 📊 Database Schema
-
-### Core Tables
-
-| Table | Purpose |
-|-------|---------|
-| `hazards_active` | Active pollution hazards (PERMIT, TRAFFIC, SCHOOL) |
-| `user_subscriptions` | User routes with push notification settings |
-| `schools_static` | Chicago Public Schools locations |
-| `alert_history` | Sent notifications (prevents duplicates) |
-
-### Key Functions
-
-| Function | Description |
-|----------|-------------|
-| `check_route_hazards(route_wkt, buffer_m)` | Check route for hazards within buffer |
-| `subscribe_to_route(user_id, route_wkt, ...)` | Subscribe to route alerts |
-| `get_nearby_hazards(lon, lat, radius)` | Get hazards near a location |
-
----
-
-## 🗓️ Automation Schedule
+## Automation Schedule
 
 | Job | Schedule | Purpose |
 |-----|----------|---------|
@@ -304,49 +259,48 @@ Add these secrets in **Settings → Secrets and variables → Actions**:
 | School Data | Daily at 6 AM | Refresh school locations |
 | School Hazards | Every 15 min | Generate peak hour hazards |
 | Traffic Data | Every 15 min | Ingest congestion data |
+| AQI Data | Every 15 min | EPA air quality readings |
+| Weather Update | Every 15 min | Wind data for scoring |
 | Alert Service | Every 15 min | Check routes & send notifications |
+| Tests | On push/PR | Automated test suite |
 
 ---
 
-## 🧪 Testing
-
-### Dry Run Mode
-
-All scripts support `--dry-run` to test without database writes:
+## Testing
 
 ```bash
-python data_pipeline/ingest_permits.py --dry-run
-python data_pipeline/alert_service.py --dry-run
+# Run all tests
+pytest tests/ -v
+
+# With coverage
+pytest tests/ -v --cov=data_pipeline --cov-report=term-missing
+
+# Dry run pipelines
+python -m data_pipeline.ingest_permits --dry-run
+python -m data_pipeline.alert_service --dry-run
+
+# Check a route
+python -m data_pipeline.check_route --coords '[[-87.63,41.88],[-87.64,41.92]]'
+
+# Find safest route
+python -m data_pipeline.check_route --start '[-87.63,41.88]' --end '[-87.64,41.92]'
 ```
 
-### Check a Route
+---
+
+## Deployment
+
+### PWA (GitHub Pages)
+
+1. Go to repo **Settings > Pages**
+2. Set **Source** to **GitHub Actions**
+3. Add secrets: `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `VAPID_PUBLIC_KEY`
+4. Run the **Deploy PWA** workflow
+
+### Push Notifications
 
 ```bash
-python data_pipeline/check_route.py --coords '[[-87.63,41.88],[-87.64,41.92]]'
+python scripts/generate_vapid_keys.py
 ```
 
----
-
-## 🚀 Deployment
-
-### PWA Deployment (GitHub Pages)
-
-1. Go to repo **Settings → Pages**
-2. Under "Build and deployment", set **Source** to **GitHub Actions**
-3. Add the required secrets (`SUPABASE_URL`, `SUPABASE_ANON_KEY`, `VAPID_PUBLIC_KEY`)
-4. Go to **Actions → "Deploy PWA"** and click **Run workflow**
-5. Your PWA will be live at `https://username.github.io/AirScout/`
-
-### Push Notifications Setup
-
-1. Generate VAPID keys:
-   ```bash
-   python scripts/generate_vapid_keys.py
-   ```
-2. Add `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, and `VAPID_EMAIL` to GitHub Secrets
-
----
-
-## 🌐 Live Demo
-
-**https://adithyavedavyas1999.github.io/AirScout/**
+Add the generated keys to GitHub Secrets.

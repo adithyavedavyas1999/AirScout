@@ -1,25 +1,18 @@
 # AirScout - Data Pipeline Orchestration
 # =======================================
-# Runs all data ingestion jobs on schedule
-#
 # Schedule:
-# - Permits: Every 6 hours (validates against 311 complaints)
-# - Schools: Daily at 6 AM (reference data, rarely changes)
-# - School Hazards: Every 15 minutes during peak hours
-# - Traffic: Every 15 minutes (with school zone override)
+# - Permits: Every 6 hours
+# - Schools: Daily at 6 AM CT (12 PM UTC)
+# - Traffic, School Hazards, AQI, Weather: Every 15 minutes
 
 name: Data Pipelines
 
 on:
   schedule:
-    # Permits: Every 6 hours
     - cron: '0 */6 * * *'
-    # Schools: Daily at 6 AM CT (12 PM UTC)
     - cron: '0 12 * * *'
-    # Traffic & School Hazards: Every 15 minutes
     - cron: '*/15 * * * *'
-  
-  # Manual trigger with job selection
+
   workflow_dispatch:
     inputs:
       job:
@@ -33,138 +26,162 @@ on:
           - schools
           - school_hazards
           - traffic
+          - aqi
+          - weather
 
 env:
   PYTHON_VERSION: '3.11'
 
 jobs:
-  # ============================================================
-  # Permit Ingestion (Zombie Permit Logic)
-  # ============================================================
   ingest-permits:
     name: Ingest Demolition Permits
     runs-on: ubuntu-latest
     if: |
       github.event.schedule == '0 */6 * * *' ||
-      github.event.inputs.job == 'permits' || 
+      github.event.inputs.job == 'permits' ||
       github.event.inputs.job == 'all'
-    
+
     steps:
       - uses: actions/checkout@v4
-      
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
-      
       - name: Install dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y libgdal-dev gdal-bin
+          sudo apt-get update && sudo apt-get install -y libgdal-dev gdal-bin
           pip install -r requirements.txt
-      
       - name: Run permit ingestion
         env:
           SUPABASE_DB_HOST: ${{ secrets.SUPABASE_DB_HOST }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
           SUPABASE_DB_PORT: ${{ secrets.SUPABASE_DB_PORT || '6543' }}
-          SUPABASE_DB_USER: ${{ secrets.SUPABASE_DB_USER || 'postgres.rtuntvcspaatkjjtmled' }}
-        run: python data_pipeline/ingest_permits.py
+          SUPABASE_DB_USER: ${{ secrets.SUPABASE_DB_USER || 'postgres' }}
+          CHICAGO_DATA_APP_TOKEN: ${{ secrets.CHICAGO_DATA_APP_TOKEN }}
+        run: python -m data_pipeline.ingest_permits
 
-  # ============================================================
-  # School Data Ingestion (Reference Data)
-  # ============================================================
   ingest-schools:
     name: Ingest School Data
     runs-on: ubuntu-latest
     if: |
       github.event.schedule == '0 12 * * *' ||
-      github.event.inputs.job == 'schools' || 
+      github.event.inputs.job == 'schools' ||
       github.event.inputs.job == 'all'
-    
+
     steps:
       - uses: actions/checkout@v4
-      
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
-      
       - name: Install dependencies
         run: pip install -r requirements.txt
-      
       - name: Run school ingestion
         env:
           SUPABASE_DB_HOST: ${{ secrets.SUPABASE_DB_HOST }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
           SUPABASE_DB_PORT: ${{ secrets.SUPABASE_DB_PORT || '6543' }}
-          SUPABASE_DB_USER: ${{ secrets.SUPABASE_DB_USER || 'postgres.rtuntvcspaatkjjtmled' }}
-        run: python data_pipeline/ingest_schools.py
+          SUPABASE_DB_USER: ${{ secrets.SUPABASE_DB_USER || 'postgres' }}
+          CHICAGO_DATA_APP_TOKEN: ${{ secrets.CHICAGO_DATA_APP_TOKEN }}
+        run: python -m data_pipeline.ingest_schools
 
-  # ============================================================
-  # School Zone Hazard Generation (Peak Hours)
-  # ============================================================
   generate-school-hazards:
     name: Generate School Zone Hazards
     runs-on: ubuntu-latest
     if: |
       github.event.schedule == '*/15 * * * *' ||
-      github.event.inputs.job == 'school_hazards' || 
+      github.event.inputs.job == 'school_hazards' ||
       github.event.inputs.job == 'all'
-    
+
     steps:
       - uses: actions/checkout@v4
-      
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
-      
       - name: Install dependencies
         run: pip install -r requirements.txt
-      
       - name: Generate school hazards
         env:
           SUPABASE_DB_HOST: ${{ secrets.SUPABASE_DB_HOST }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
           SUPABASE_DB_PORT: ${{ secrets.SUPABASE_DB_PORT || '6543' }}
-          SUPABASE_DB_USER: ${{ secrets.SUPABASE_DB_USER || 'postgres.rtuntvcspaatkjjtmled' }}
-        run: python data_pipeline/generate_school_hazards.py
+          SUPABASE_DB_USER: ${{ secrets.SUPABASE_DB_USER || 'postgres' }}
+        run: python -m data_pipeline.generate_school_hazards
 
-  # ============================================================
-  # Traffic Congestion Ingestion (with School Zone Override)
-  # ============================================================
   ingest-traffic:
     name: Ingest Traffic Data
     runs-on: ubuntu-latest
     if: |
       github.event.schedule == '*/15 * * * *' ||
-      github.event.inputs.job == 'traffic' || 
+      github.event.inputs.job == 'traffic' ||
       github.event.inputs.job == 'all'
-    
+
     steps:
       - uses: actions/checkout@v4
-      
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
-      
       - name: Install dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y libgdal-dev gdal-bin
+          sudo apt-get update && sudo apt-get install -y libgdal-dev gdal-bin
           pip install -r requirements.txt
-      
       - name: Run traffic ingestion
         env:
           SUPABASE_DB_HOST: ${{ secrets.SUPABASE_DB_HOST }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
           SUPABASE_DB_PORT: ${{ secrets.SUPABASE_DB_PORT || '6543' }}
-          SUPABASE_DB_USER: ${{ secrets.SUPABASE_DB_USER || 'postgres.rtuntvcspaatkjjtmled' }}
-        run: python data_pipeline/ingest_traffic.py
+          SUPABASE_DB_USER: ${{ secrets.SUPABASE_DB_USER || 'postgres' }}
+          CHICAGO_DATA_APP_TOKEN: ${{ secrets.CHICAGO_DATA_APP_TOKEN }}
+        run: python -m data_pipeline.ingest_traffic
 
+  ingest-aqi:
+    name: Ingest AQI Data
+    runs-on: ubuntu-latest
+    if: |
+      github.event.schedule == '*/15 * * * *' ||
+      github.event.inputs.job == 'aqi' ||
+      github.event.inputs.job == 'all'
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Run AQI ingestion
+        env:
+          SUPABASE_DB_HOST: ${{ secrets.SUPABASE_DB_HOST }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          SUPABASE_DB_PORT: ${{ secrets.SUPABASE_DB_PORT || '6543' }}
+          SUPABASE_DB_USER: ${{ secrets.SUPABASE_DB_USER || 'postgres' }}
+          AIRNOW_API_KEY: ${{ secrets.AIRNOW_API_KEY }}
+        run: python -m data_pipeline.ingest_aqi
+
+  update-weather:
+    name: Update Weather Context
+    runs-on: ubuntu-latest
+    if: |
+      github.event.schedule == '*/15 * * * *' ||
+      github.event.inputs.job == 'weather' ||
+      github.event.inputs.job == 'all'
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Update weather context
+        env:
+          SUPABASE_DB_HOST: ${{ secrets.SUPABASE_DB_HOST }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          SUPABASE_DB_PORT: ${{ secrets.SUPABASE_DB_PORT || '6543' }}
+          SUPABASE_DB_USER: ${{ secrets.SUPABASE_DB_USER || 'postgres' }}
+          OPENWEATHER_API_KEY: ${{ secrets.OPENWEATHER_API_KEY }}
+        run: python -m data_pipeline.ingest_weather

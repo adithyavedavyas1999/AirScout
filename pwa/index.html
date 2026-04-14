@@ -2,40 +2,37 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
     <meta name="theme-color" content="#0a0a0f">
     <meta name="description" content="AirScout - Protecting children with asthma from pollution hazards in Chicago.">
-    
+
     <!-- PWA Manifest -->
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
-    
+
     <title>AirScout - Clean Air Routes</title>
-    
+
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
-    
-    <!-- Google Fonts - Unique combination -->
+
+    <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-    
+
     <style>
         :root {
-            /* Deep midnight palette */
             --bg-void: #04050a;
             --bg-deep: #0a0b12;
             --bg-surface: #12141f;
             --bg-elevated: #1a1d2e;
             --bg-hover: #222640;
-            
-            /* Accent colors - Fresh teal/cyan */
+
             --accent: #00e5c7;
             --accent-glow: rgba(0, 229, 199, 0.15);
             --accent-soft: rgba(0, 229, 199, 0.08);
-            
-            /* Status colors */
+
             --danger: #ff4757;
             --danger-glow: rgba(255, 71, 87, 0.2);
             --warning: #ffa502;
@@ -44,34 +41,33 @@
             --safe-glow: rgba(46, 213, 115, 0.2);
             --school: #3498db;
             --school-glow: rgba(52, 152, 219, 0.2);
-            
-            /* Text */
+            --aqi: #9b59b6;
+            --aqi-glow: rgba(155, 89, 182, 0.2);
+
             --text-bright: #ffffff;
             --text-primary: #e4e6ed;
             --text-secondary: #8b8fa3;
             --text-muted: #545872;
-            
-            /* Borders & Effects */
+
             --border: rgba(255, 255, 255, 0.06);
             --border-accent: rgba(0, 229, 199, 0.3);
             --glass: rgba(18, 20, 31, 0.85);
             --shadow-lg: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
             --shadow-glow: 0 0 40px rgba(0, 229, 199, 0.15);
-            
-            /* Sizing */
+
             --radius-sm: 8px;
             --radius-md: 12px;
             --radius-lg: 20px;
             --radius-xl: 28px;
         }
-        
+
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        
+
         html, body {
             height: 100%;
             overflow: hidden;
         }
-        
+
         body {
             font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
             background: var(--bg-void);
@@ -79,7 +75,7 @@
             line-height: 1.5;
             -webkit-font-smoothing: antialiased;
         }
-        
+
         /* ============================================
            App Container
         ============================================ */
@@ -89,9 +85,9 @@
             height: 100vh;
             height: 100dvh;
         }
-        
+
         /* ============================================
-           Header - Floating glass style
+           Header
         ============================================ */
         .header {
             position: absolute;
@@ -111,18 +107,24 @@
             box-shadow: var(--shadow-lg);
             animation: slideDown 0.5s ease-out;
         }
-        
+
         @keyframes slideDown {
             from { opacity: 0; transform: translateY(-20px); }
             to { opacity: 1; transform: translateY(0); }
         }
-        
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
         .logo {
             display: flex;
             align-items: center;
             gap: 10px;
         }
-        
+
         .logo-icon {
             width: 36px;
             height: 36px;
@@ -134,25 +136,54 @@
             font-size: 1.2rem;
             box-shadow: 0 4px 15px rgba(0, 229, 199, 0.3);
         }
-        
+
         .logo-text {
             font-size: 1.3rem;
             font-weight: 700;
             letter-spacing: -0.02em;
         }
-        
+
         .logo-text span {
             background: linear-gradient(135deg, var(--accent) 0%, #00b4a0 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
         }
-        
+
+        .live-indicator {
+            display: none;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.65rem;
+            color: var(--safe);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            padding: 4px 10px;
+            background: var(--safe-glow);
+            border-radius: 20px;
+        }
+
+        .live-indicator.active { display: flex; }
+
+        .live-dot {
+            width: 6px;
+            height: 6px;
+            background: var(--safe);
+            border-radius: 50%;
+            animation: livePulse 2s ease-in-out infinite;
+        }
+
+        @keyframes livePulse {
+            0%, 100% { opacity: 1; box-shadow: 0 0 4px var(--safe); }
+            50% { opacity: 0.4; box-shadow: 0 0 8px var(--safe); }
+        }
+
         .header-actions {
             display: flex;
             gap: 8px;
         }
-        
+
         .icon-btn {
             width: 40px;
             height: 40px;
@@ -165,14 +196,15 @@
             cursor: pointer;
             font-size: 1.1rem;
             transition: all 0.2s ease;
+            color: var(--text-primary);
         }
-        
+
         .icon-btn:hover {
             background: var(--bg-hover);
             border-color: var(--border-accent);
             transform: translateY(-2px);
         }
-        
+
         /* ============================================
            Map Container
         ============================================ */
@@ -180,19 +212,18 @@
             flex: 1;
             position: relative;
         }
-        
+
         #map {
             width: 100%;
             height: 100%;
             background: var(--bg-deep);
         }
-        
-        /* Custom Leaflet styles */
+
         .leaflet-control-zoom {
             border: none !important;
             box-shadow: var(--shadow-lg) !important;
         }
-        
+
         .leaflet-control-zoom a {
             background: var(--glass) !important;
             backdrop-filter: blur(20px) !important;
@@ -203,22 +234,22 @@
             line-height: 36px !important;
             font-size: 18px !important;
         }
-        
+
         .leaflet-control-zoom a:hover {
             background: var(--bg-elevated) !important;
             color: var(--accent) !important;
         }
-        
+
         .leaflet-control-zoom-in {
             border-radius: var(--radius-md) var(--radius-md) 0 0 !important;
         }
-        
+
         .leaflet-control-zoom-out {
             border-radius: 0 0 var(--radius-md) var(--radius-md) !important;
         }
-        
+
         /* ============================================
-           Status Card - Route Risk
+           Status Card
         ============================================ */
         .status-card {
             position: absolute;
@@ -236,14 +267,14 @@
             display: none;
             animation: fadeInScale 0.3s ease-out;
         }
-        
+
         @keyframes fadeInScale {
             from { opacity: 0; transform: scale(0.95); }
             to { opacity: 1; transform: scale(1); }
         }
-        
+
         .status-card.active { display: block; }
-        
+
         .status-label {
             font-size: 0.75rem;
             font-weight: 500;
@@ -252,13 +283,13 @@
             color: var(--text-muted);
             margin-bottom: 8px;
         }
-        
+
         .risk-display {
             display: flex;
             align-items: baseline;
             gap: 8px;
         }
-        
+
         .risk-score {
             font-family: 'IBM Plex Mono', monospace;
             font-size: 3rem;
@@ -269,31 +300,31 @@
             -webkit-text-fill-color: transparent;
             background-clip: text;
         }
-        
+
         .risk-score.high {
             background: linear-gradient(135deg, var(--danger) 0%, #ff6b81 100%);
             -webkit-background-clip: text;
             background-clip: text;
         }
-        
+
         .risk-score.moderate {
             background: linear-gradient(135deg, var(--warning) 0%, #ffc048 100%);
             -webkit-background-clip: text;
             background-clip: text;
         }
-        
+
         .risk-score.low {
             background: linear-gradient(135deg, var(--safe) 0%, #7bed9f 100%);
             -webkit-background-clip: text;
             background-clip: text;
         }
-        
+
         .risk-unit {
             font-size: 0.9rem;
             color: var(--text-secondary);
             font-weight: 500;
         }
-        
+
         .risk-description {
             font-size: 0.85rem;
             color: var(--text-secondary);
@@ -301,7 +332,7 @@
             padding-top: 12px;
             border-top: 1px solid var(--border);
         }
-        
+
         /* ============================================
            Legend Card
         ============================================ */
@@ -319,12 +350,12 @@
             box-shadow: var(--shadow-lg);
             animation: slideUp 0.5s ease-out 0.2s both;
         }
-        
+
         @keyframes slideUp {
             from { opacity: 0; transform: translateY(20px); }
             to { opacity: 1; transform: translateY(0); }
         }
-        
+
         .legend-title {
             font-size: 0.7rem;
             font-weight: 600;
@@ -333,13 +364,13 @@
             color: var(--text-muted);
             margin-bottom: 10px;
         }
-        
+
         .legend-items {
             display: flex;
             flex-direction: column;
             gap: 8px;
         }
-        
+
         .legend-item {
             display: flex;
             align-items: center;
@@ -347,20 +378,21 @@
             font-size: 0.8rem;
             color: var(--text-secondary);
         }
-        
+
         .legend-dot {
             width: 10px;
             height: 10px;
             border-radius: 50%;
             box-shadow: 0 0 10px currentColor;
         }
-        
+
         .legend-dot.demolition { background: var(--danger); color: var(--danger); }
         .legend-dot.traffic { background: var(--warning); color: var(--warning); }
         .legend-dot.school { background: var(--school); color: var(--school); }
-        
+        .legend-dot.aqi { background: var(--aqi); color: var(--aqi); }
+
         /* ============================================
-           Bottom Action Bar
+           Action Bar
         ============================================ */
         .action-bar {
             position: absolute;
@@ -379,7 +411,7 @@
             box-shadow: var(--shadow-lg), var(--shadow-glow);
             animation: slideUp 0.5s ease-out 0.3s both;
         }
-        
+
         .action-btn {
             display: flex;
             align-items: center;
@@ -396,14 +428,20 @@
             transition: all 0.25s ease;
             white-space: nowrap;
         }
-        
+
         .action-btn:hover {
             background: var(--bg-hover);
             border-color: var(--border-accent);
             transform: translateY(-2px);
             box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
         }
-        
+
+        .action-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
         .action-btn.primary {
             background: linear-gradient(135deg, var(--accent) 0%, #00b4a0 100%);
             border: none;
@@ -411,22 +449,20 @@
             font-weight: 600;
             box-shadow: 0 4px 20px rgba(0, 229, 199, 0.3);
         }
-        
+
         .action-btn.primary:hover {
             transform: translateY(-2px);
             box-shadow: 0 8px 30px rgba(0, 229, 199, 0.4);
         }
-        
+
         .action-btn.danger {
             background: var(--danger);
             border: none;
             color: white;
         }
-        
-        .action-btn .icon {
-            font-size: 1.1rem;
-        }
-        
+
+        .action-btn .icon { font-size: 1.1rem; }
+
         /* ============================================
            Bottom Navigation Tabs
         ============================================ */
@@ -437,7 +473,7 @@
             padding: 8px 16px;
             padding-bottom: max(8px, env(safe-area-inset-bottom));
         }
-        
+
         .nav-tab {
             flex: 1;
             display: flex;
@@ -455,25 +491,21 @@
             transition: all 0.2s ease;
             border-radius: var(--radius-md);
         }
-        
+
         .nav-tab:hover {
             color: var(--text-secondary);
             background: var(--bg-surface);
         }
-        
-        .nav-tab.active {
-            color: var(--accent);
-        }
-        
+
+        .nav-tab.active { color: var(--accent); }
+
         .nav-tab .icon {
             font-size: 1.4rem;
             transition: transform 0.2s ease;
         }
-        
-        .nav-tab.active .icon {
-            transform: scale(1.1);
-        }
-        
+
+        .nav-tab.active .icon { transform: scale(1.1); }
+
         /* ============================================
            Tab Content Panels
         ============================================ */
@@ -483,9 +515,9 @@
             overflow-y: auto;
             background: var(--bg-void);
         }
-        
+
         .tab-panel.active { display: flex; flex-direction: column; }
-        
+
         .panel-content {
             flex: 1;
             padding: 20px;
@@ -493,24 +525,24 @@
             margin: 0 auto;
             width: 100%;
         }
-        
+
         .panel-header {
             padding: 24px 20px 16px;
             background: linear-gradient(180deg, var(--bg-deep) 0%, var(--bg-void) 100%);
             border-bottom: 1px solid var(--border);
         }
-        
+
         .panel-title {
             font-size: 1.5rem;
             font-weight: 700;
             margin-bottom: 4px;
         }
-        
+
         .panel-subtitle {
             font-size: 0.9rem;
             color: var(--text-secondary);
         }
-        
+
         /* ============================================
            Route Cards
         ============================================ */
@@ -522,37 +554,49 @@
             margin-bottom: 12px;
             transition: all 0.2s ease;
         }
-        
+
         .route-card:hover {
             border-color: var(--border-accent);
             transform: translateY(-2px);
             box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
         }
-        
+
         .route-header {
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
             margin-bottom: 12px;
         }
-        
+
         .route-name {
             font-size: 1rem;
             font-weight: 600;
             color: var(--text-bright);
         }
-        
+
         .route-meta {
             font-size: 0.8rem;
             color: var(--text-muted);
             margin-top: 2px;
         }
-        
+
+        .route-briefing-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 0.7rem;
+            color: var(--warning);
+            background: var(--warning-glow);
+            padding: 2px 8px;
+            border-radius: 10px;
+            margin-top: 6px;
+        }
+
         .route-actions {
             display: flex;
             gap: 6px;
         }
-        
+
         .route-action-btn {
             width: 32px;
             height: 32px;
@@ -567,12 +611,12 @@
             color: var(--text-secondary);
             transition: all 0.2s ease;
         }
-        
+
         .route-action-btn:hover {
             background: var(--bg-hover);
             color: var(--text-primary);
         }
-        
+
         .route-footer {
             display: flex;
             justify-content: space-between;
@@ -580,7 +624,7 @@
             padding-top: 12px;
             border-top: 1px solid var(--border);
         }
-        
+
         .route-stat {
             display: flex;
             align-items: center;
@@ -588,14 +632,21 @@
             font-size: 0.8rem;
             color: var(--text-secondary);
         }
-        
+
         .route-stat .dot {
             width: 6px;
             height: 6px;
             border-radius: 50%;
             background: var(--safe);
         }
-        
+
+        .route-last-checked {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            font-family: 'IBM Plex Mono', monospace;
+            margin-top: 4px;
+        }
+
         /* Toggle Switch */
         .toggle {
             position: relative;
@@ -603,24 +654,17 @@
             height: 24px;
             cursor: pointer;
         }
-        
-        .toggle input {
-            opacity: 0;
-            width: 0;
-            height: 0;
-        }
-        
+
+        .toggle input { opacity: 0; width: 0; height: 0; }
+
         .toggle-track {
             position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
+            top: 0; left: 0; right: 0; bottom: 0;
             background: var(--bg-hover);
             border-radius: 12px;
             transition: all 0.3s ease;
         }
-        
+
         .toggle-thumb {
             position: absolute;
             top: 2px;
@@ -631,16 +675,14 @@
             border-radius: 50%;
             transition: all 0.3s ease;
         }
-        
-        .toggle input:checked + .toggle-track {
-            background: var(--accent);
-        }
-        
+
+        .toggle input:checked + .toggle-track { background: var(--accent); }
+
         .toggle input:checked + .toggle-track .toggle-thumb {
             transform: translateX(20px);
             background: var(--bg-void);
         }
-        
+
         /* ============================================
            Alert Cards
         ============================================ */
@@ -654,25 +696,23 @@
             position: relative;
             overflow: hidden;
         }
-        
+
         .alert-card::before {
             content: '';
             position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
+            top: 0; left: 0; right: 0; bottom: 0;
             background: var(--danger-glow);
             opacity: 0.5;
             pointer-events: none;
         }
-        
+
         .alert-card.school { border-left-color: var(--school); }
         .alert-card.school::before { background: var(--school-glow); }
-        
         .alert-card.traffic { border-left-color: var(--warning); }
         .alert-card.traffic::before { background: var(--warning-glow); }
-        
+        .alert-card.aqi { border-left-color: var(--aqi); }
+        .alert-card.aqi::before { background: var(--aqi-glow); }
+
         .alert-header {
             display: flex;
             justify-content: space-between;
@@ -680,7 +720,7 @@
             margin-bottom: 8px;
             position: relative;
         }
-        
+
         .alert-type {
             display: flex;
             align-items: center;
@@ -688,21 +728,21 @@
             font-weight: 600;
             font-size: 0.95rem;
         }
-        
+
         .alert-time {
             font-size: 0.75rem;
             color: var(--text-muted);
             font-family: 'IBM Plex Mono', monospace;
         }
-        
+
         .alert-description {
             font-size: 0.85rem;
             color: var(--text-secondary);
             position: relative;
         }
-        
+
         /* ============================================
-           Empty State
+           Empty & Error States
         ============================================ */
         .empty-state {
             display: flex;
@@ -712,7 +752,7 @@
             padding: 60px 20px;
             text-align: center;
         }
-        
+
         .empty-icon {
             width: 80px;
             height: 80px;
@@ -725,21 +765,38 @@
             font-size: 2rem;
             margin-bottom: 20px;
         }
-        
+
         .empty-title {
             font-size: 1.1rem;
             font-weight: 600;
             margin-bottom: 8px;
         }
-        
+
         .empty-description {
             font-size: 0.9rem;
             color: var(--text-secondary);
             max-width: 280px;
         }
-        
+
+        .error-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 30px 20px;
+            text-align: center;
+            color: var(--text-secondary);
+            gap: 8px;
+        }
+
+        .error-state .error-icon { font-size: 1.5rem; }
+
+        .error-state .error-message {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
         /* ============================================
-           Modal
+           Modals
         ============================================ */
         .modal-overlay {
             display: none;
@@ -753,30 +810,32 @@
             padding: 20px;
             animation: fadeIn 0.2s ease;
         }
-        
+
         @keyframes fadeIn {
             from { opacity: 0; }
             to { opacity: 1; }
         }
-        
+
         .modal-overlay.active { display: flex; }
-        
+
         .modal {
             background: var(--bg-surface);
             border: 1px solid var(--border);
             border-radius: var(--radius-xl);
             padding: 28px;
             width: 100%;
-            max-width: 400px;
+            max-width: 420px;
+            max-height: 90vh;
+            overflow-y: auto;
             box-shadow: var(--shadow-lg);
             animation: modalSlide 0.3s ease;
         }
-        
+
         @keyframes modalSlide {
             from { opacity: 0; transform: translateY(20px) scale(0.98); }
             to { opacity: 1; transform: translateY(0) scale(1); }
         }
-        
+
         .modal-title {
             font-size: 1.3rem;
             font-weight: 700;
@@ -785,11 +844,9 @@
             align-items: center;
             gap: 10px;
         }
-        
-        .form-group {
-            margin-bottom: 18px;
-        }
-        
+
+        .form-group { margin-bottom: 18px; }
+
         .form-label {
             display: block;
             font-size: 0.8rem;
@@ -797,7 +854,7 @@
             color: var(--text-secondary);
             margin-bottom: 8px;
         }
-        
+
         .form-input, .form-select {
             width: 100%;
             padding: 14px 16px;
@@ -809,37 +866,48 @@
             font-size: 1rem;
             transition: all 0.2s ease;
         }
-        
+
         .form-input:focus, .form-select:focus {
             outline: none;
             border-color: var(--accent);
             box-shadow: 0 0 0 3px var(--accent-soft);
         }
-        
-        .form-input::placeholder {
-            color: var(--text-muted);
+
+        .form-input::placeholder { color: var(--text-muted); }
+
+        .form-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            color: var(--text-primary);
         }
-        
+
+        .form-checkbox input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: var(--accent);
+            cursor: pointer;
+        }
+
         .btn-group {
             display: flex;
             gap: 10px;
             margin-top: 24px;
         }
-        
-        .btn-group .action-btn {
-            flex: 1;
-            justify-content: center;
-        }
-        
+
+        .btn-group .action-btn { flex: 1; justify-content: center; }
+
         /* ============================================
-           Settings Modal Extras
+           Settings Modal
         ============================================ */
         .theme-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 10px;
         }
-        
+
         .theme-option {
             display: flex;
             flex-direction: column;
@@ -856,37 +924,30 @@
             font-size: 0.85rem;
             font-weight: 500;
         }
-        
-        .theme-option:hover {
-            border-color: var(--text-muted);
-        }
-        
+
+        .theme-option:hover { border-color: var(--text-muted); }
+
         .theme-option.active {
             border-color: var(--accent);
             background: var(--accent-soft);
         }
-        
+
         .theme-preview {
             width: 48px;
             height: 32px;
             border-radius: 6px;
             border: 1px solid var(--border);
         }
-        
-        .dark-preview {
-            background: linear-gradient(135deg, #0a0b12 0%, #1a1d2e 100%);
-        }
-        
-        .light-preview {
-            background: linear-gradient(135deg, #ffffff 0%, #f0f2f5 100%);
-        }
-        
+
+        .dark-preview { background: linear-gradient(135deg, #0a0b12 0%, #1a1d2e 100%); }
+        .light-preview { background: linear-gradient(135deg, #ffffff 0%, #f0f2f5 100%); }
+
         .map-style-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
             gap: 10px;
         }
-        
+
         .map-style-option {
             display: flex;
             flex-direction: column;
@@ -903,23 +964,21 @@
             font-size: 0.75rem;
             font-weight: 500;
         }
-        
-        .map-style-option:hover {
-            border-color: var(--text-muted);
-        }
-        
+
+        .map-style-option:hover { border-color: var(--text-muted); }
+
         .map-style-option.active {
             border-color: var(--accent);
             background: var(--accent-soft);
         }
-        
+
         .map-style-preview {
             width: 100%;
             height: 40px;
             border-radius: 6px;
             border: 1px solid var(--border);
         }
-        
+
         .settings-info {
             margin-top: 20px;
             padding: 16px;
@@ -927,31 +986,183 @@
             border-radius: var(--radius-md);
             border: 1px solid var(--border);
         }
-        
+
         .info-row {
             display: flex;
             justify-content: space-between;
             align-items: center;
             padding: 8px 0;
         }
-        
-        .info-row:not(:last-child) {
-            border-bottom: 1px solid var(--border);
-        }
-        
+
+        .info-row:not(:last-child) { border-bottom: 1px solid var(--border); }
+
         .info-label {
             font-size: 0.8rem;
             color: var(--text-muted);
         }
-        
+
         .info-value {
             font-size: 0.8rem;
             font-family: 'IBM Plex Mono', monospace;
             color: var(--text-secondary);
         }
-        
+
         /* ============================================
-           Light Mode Theme
+           Route Comparison Panel
+        ============================================ */
+        .route-compare-panel {
+            position: absolute;
+            bottom: 90px;
+            left: 16px;
+            right: 16px;
+            z-index: 1000;
+            background: var(--glass);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 16px;
+            box-shadow: var(--shadow-lg);
+            display: none;
+            animation: fadeInScale 0.3s ease-out;
+        }
+
+        .route-compare-panel.active { display: block; }
+
+        .compare-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .compare-title {
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .compare-close-btn {
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            color: var(--text-secondary);
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+
+        .compare-routes {
+            display: flex;
+            gap: 10px;
+            overflow-x: auto;
+            padding-bottom: 4px;
+        }
+
+        .compare-card {
+            flex: 1;
+            min-width: 130px;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 12px;
+            border-left: 4px solid var(--text-muted);
+        }
+
+        .compare-card.safest { border-left-color: var(--safe); }
+        .compare-card.middle { border-left-color: var(--warning); }
+        .compare-card.hazardous { border-left-color: var(--danger); }
+
+        .compare-card-label {
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 6px;
+        }
+
+        .compare-card.safest .compare-card-label { color: var(--safe); }
+        .compare-card.middle .compare-card-label { color: var(--warning); }
+        .compare-card.hazardous .compare-card-label { color: var(--danger); }
+
+        .compare-stat {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-bottom: 2px;
+        }
+
+        .compare-stat strong {
+            color: var(--text-primary);
+            font-family: 'IBM Plex Mono', monospace;
+        }
+
+        /* ============================================
+           Onboarding Modal
+        ============================================ */
+        .onboarding-content {
+            text-align: center;
+            padding: 10px 0;
+        }
+
+        .onboarding-icon {
+            font-size: 3.5rem;
+            margin-bottom: 16px;
+        }
+
+        .onboarding-title {
+            font-size: 1.6rem;
+            font-weight: 700;
+            margin-bottom: 12px;
+        }
+
+        .onboarding-title span {
+            background: linear-gradient(135deg, var(--accent) 0%, #00b4a0 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .onboarding-text {
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            line-height: 1.6;
+            margin-bottom: 8px;
+        }
+
+        .onboarding-features {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin: 20px 0;
+            text-align: left;
+        }
+
+        .onboarding-feature {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 0.9rem;
+            color: var(--text-primary);
+        }
+
+        .onboarding-feature .feat-icon {
+            width: 36px;
+            height: 36px;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            flex-shrink: 0;
+        }
+
+        /* ============================================
+           Light Mode
         ============================================ */
         body.light-mode {
             --bg-void: #f8f9fc;
@@ -959,38 +1170,38 @@
             --bg-surface: #ffffff;
             --bg-elevated: #f5f7fa;
             --bg-hover: #e8ecf2;
-            
+
             --text-bright: #1a1a2e;
             --text-primary: #2d3748;
             --text-secondary: #64748b;
             --text-muted: #94a3b8;
-            
+
             --border: rgba(0, 0, 0, 0.08);
             --border-accent: rgba(0, 229, 199, 0.4);
             --glass: rgba(255, 255, 255, 0.9);
             --shadow-lg: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
             --shadow-glow: 0 0 40px rgba(0, 229, 199, 0.1);
-            
+
             --accent: #00b4a0;
         }
-        
+
         body.light-mode .logo-text span {
             background: linear-gradient(135deg, #00b4a0 0%, #009688 100%);
             -webkit-background-clip: text;
             background-clip: text;
         }
-        
+
         body.light-mode .action-btn.primary {
             background: linear-gradient(135deg, #00b4a0 0%, #009688 100%);
         }
-        
+
         body.light-mode .leaflet-control-zoom a {
             background: rgba(255, 255, 255, 0.95) !important;
             color: var(--text-primary) !important;
         }
-        
+
         /* ============================================
-           Loading State
+           Loading
         ============================================ */
         .loading {
             display: flex;
@@ -1000,7 +1211,7 @@
             padding: 40px;
             color: var(--text-secondary);
         }
-        
+
         .spinner {
             width: 20px;
             height: 20px;
@@ -1009,31 +1220,17 @@
             border-radius: 50%;
             animation: spin 0.8s linear infinite;
         }
-        
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-        
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
         /* ============================================
-           Custom Scrollbar
+           Scrollbar
         ============================================ */
-        ::-webkit-scrollbar {
-            width: 6px;
-        }
-        
-        ::-webkit-scrollbar-track {
-            background: transparent;
-        }
-        
-        ::-webkit-scrollbar-thumb {
-            background: var(--bg-hover);
-            border-radius: 3px;
-        }
-        
-        ::-webkit-scrollbar-thumb:hover {
-            background: var(--text-muted);
-        }
-        
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--bg-hover); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
         /* ============================================
            Responsive
         ============================================ */
@@ -1044,58 +1241,68 @@
                 right: 12px;
                 padding: 10px 16px;
             }
-            
+
             .action-bar {
                 left: 12px;
                 right: 12px;
                 transform: none;
                 bottom: 80px;
             }
-            
+
             .action-btn {
                 flex: 1;
                 justify-content: center;
                 padding: 12px 14px;
                 font-size: 0.85rem;
             }
-            
+
             .action-btn .label { display: none; }
             .action-btn .icon { font-size: 1.3rem; }
-            
-            .legend-card {
-                bottom: 160px;
-            }
-            
+
+            .legend-card { bottom: 160px; }
+
             .status-card {
                 top: 80px;
                 left: 12px;
                 right: 12px;
                 min-width: auto;
             }
+
+            .route-compare-panel {
+                bottom: 150px;
+                left: 12px;
+                right: 12px;
+            }
+
+            .compare-routes { flex-direction: column; }
+            .compare-card { min-width: auto; }
         }
     </style>
 </head>
 <body>
     <div class="app">
-        <!-- Map Tab -->
+        <!-- ==================== Map Tab ==================== -->
         <div class="tab-panel active" id="tab-map">
             <div class="map-container">
-                <!-- Header -->
                 <header class="header">
-                    <div class="logo">
-                        <div class="logo-icon">🌬️</div>
-                        <div class="logo-text">Air<span>Scout</span></div>
+                    <div class="header-left">
+                        <div class="logo">
+                            <div class="logo-icon">🌬️</div>
+                            <div class="logo-text">Air<span>Scout</span></div>
+                        </div>
+                        <div class="live-indicator" id="liveIndicator">
+                            <span class="live-dot"></span>
+                            <span>Live</span>
+                        </div>
                     </div>
                     <div class="header-actions">
-                        <button class="icon-btn" onclick="refreshHazards()" title="Refresh">🔄</button>
-                        <button class="icon-btn" onclick="showSettings()" title="Settings">⚙️</button>
+                        <button class="icon-btn" id="refreshBtn" aria-label="Refresh hazard data">🔄</button>
+                        <button class="icon-btn" id="settingsBtn" aria-label="Open settings">⚙️</button>
                     </div>
                 </header>
-                
-                <!-- Map -->
+
                 <div id="map"></div>
-                
-                <!-- Status Card -->
+
                 <div class="status-card" id="statusCard">
                     <div class="status-label">Route Risk Score</div>
                     <div class="risk-display">
@@ -1106,8 +1313,7 @@
                         Draw a route to analyze hazards
                     </div>
                 </div>
-                
-                <!-- Legend -->
+
                 <div class="legend-card">
                     <div class="legend-title">Hazard Types</div>
                     <div class="legend-items">
@@ -1123,28 +1329,43 @@
                             <div class="legend-dot school"></div>
                             <span>School Zone (Peak)</span>
                         </div>
+                        <div class="legend-item">
+                            <div class="legend-dot aqi"></div>
+                            <span>Air Quality</span>
+                        </div>
                     </div>
                 </div>
-                
-                <!-- Action Bar -->
+
+                <div class="route-compare-panel" id="routeComparePanel">
+                    <div class="compare-header">
+                        <div class="compare-title">🛡️ Safe Route Comparison</div>
+                        <button class="compare-close-btn" id="closeCompareBtn" aria-label="Close route comparison">✕</button>
+                    </div>
+                    <div class="compare-routes" id="compareRoutes"></div>
+                </div>
+
                 <div class="action-bar">
-                    <button class="action-btn" onclick="startDrawing()">
+                    <button class="action-btn" id="drawBtn" aria-label="Draw a route on the map">
                         <span class="icon">✏️</span>
                         <span class="label">Draw Route</span>
                     </button>
-                    <button class="action-btn" onclick="clearRoute()">
+                    <button class="action-btn" id="clearBtn" aria-label="Clear drawn route">
                         <span class="icon">🗑️</span>
                         <span class="label">Clear</span>
                     </button>
-                    <button class="action-btn primary" id="saveBtn" onclick="showSaveModal()" style="display: none;">
+                    <button class="action-btn" id="safeRouteBtn" aria-label="Find a safe walking route">
+                        <span class="icon">🛡️</span>
+                        <span class="label">Safe Route</span>
+                    </button>
+                    <button class="action-btn primary" id="saveBtn" aria-label="Save current route" style="display: none;">
                         <span class="icon">💾</span>
                         <span class="label">Save Route</span>
                     </button>
                 </div>
             </div>
         </div>
-        
-        <!-- Routes Tab -->
+
+        <!-- ==================== Routes Tab ==================== -->
         <div class="tab-panel" id="tab-routes">
             <div class="panel-header">
                 <h1 class="panel-title">My Routes</h1>
@@ -1157,8 +1378,8 @@
                 </div>
             </div>
         </div>
-        
-        <!-- Alerts Tab -->
+
+        <!-- ==================== Alerts Tab ==================== -->
         <div class="tab-panel" id="tab-alerts">
             <div class="panel-header">
                 <h1 class="panel-title">Alerts</h1>
@@ -1172,34 +1393,34 @@
                 </div>
             </div>
         </div>
-        
-        <!-- Bottom Navigation -->
+
+        <!-- ==================== Bottom Navigation ==================== -->
         <nav class="nav-tabs">
-            <button class="nav-tab active" data-tab="map">
+            <button class="nav-tab active" data-tab="map" aria-label="Map view">
                 <span class="icon">🗺️</span>
                 <span>Map</span>
             </button>
-            <button class="nav-tab" data-tab="routes">
+            <button class="nav-tab" data-tab="routes" aria-label="Saved routes">
                 <span class="icon">📍</span>
                 <span>Routes</span>
             </button>
-            <button class="nav-tab" data-tab="alerts">
+            <button class="nav-tab" data-tab="alerts" aria-label="Alert notifications">
                 <span class="icon">🔔</span>
                 <span>Alerts</span>
             </button>
         </nav>
     </div>
-    
-    <!-- Save Modal -->
-    <div class="modal-overlay" id="saveModal">
+
+    <!-- ==================== Save Route Modal ==================== -->
+    <div class="modal-overlay" id="saveModal" role="dialog" aria-modal="true" aria-label="Save route">
         <div class="modal">
             <h2 class="modal-title">💾 Save Route</h2>
             <div class="form-group">
-                <label class="form-label">Route Name</label>
+                <label class="form-label" for="routeName">Route Name</label>
                 <input type="text" class="form-input" id="routeName" placeholder="e.g., School Commute">
             </div>
             <div class="form-group">
-                <label class="form-label">Alert Threshold</label>
+                <label class="form-label" for="severityThreshold">Alert Threshold</label>
                 <select class="form-select" id="severityThreshold">
                     <option value="1">All hazards (1+)</option>
                     <option value="2">Low and above (2+)</option>
@@ -1208,55 +1429,65 @@
                     <option value="5">Critical only (5)</option>
                 </select>
             </div>
+            <div class="form-group">
+                <label class="form-checkbox">
+                    <input type="checkbox" id="morningBriefing">
+                    <span>Enable morning briefing</span>
+                </label>
+            </div>
             <div class="btn-group">
-                <button class="action-btn" onclick="closeModal()">Cancel</button>
-                <button class="action-btn primary" onclick="saveRoute()">Save & Subscribe</button>
+                <button class="action-btn" id="saveCancelBtn">Cancel</button>
+                <button class="action-btn primary" id="saveConfirmBtn">Save &amp; Subscribe</button>
             </div>
         </div>
     </div>
-    
-    <!-- Settings Modal -->
-    <div class="modal-overlay" id="settingsModal">
+
+    <!-- ==================== Settings Modal ==================== -->
+    <div class="modal-overlay" id="settingsModal" role="dialog" aria-modal="true" aria-label="Settings">
         <div class="modal">
             <h2 class="modal-title">⚙️ Settings</h2>
-            
+
             <div class="form-group">
                 <label class="form-label">App Theme</label>
                 <div class="theme-grid">
-                    <button class="theme-option active" data-app-theme="dark" onclick="setAppTheme('dark')">
+                    <button class="theme-option active" data-app-theme="dark" aria-label="Dark theme">
                         <div class="theme-preview dark-preview"></div>
                         <span>Dark</span>
                     </button>
-                    <button class="theme-option" data-app-theme="light" onclick="setAppTheme('light')">
+                    <button class="theme-option" data-app-theme="light" aria-label="Light theme">
                         <div class="theme-preview light-preview"></div>
                         <span>Light</span>
                     </button>
                 </div>
             </div>
-            
+
             <div class="form-group">
                 <label class="form-label">Map Style</label>
                 <div class="map-style-grid">
-                    <button class="map-style-option active" data-map-style="dark_all" onclick="setMapStyle('dark_all')">
+                    <button class="map-style-option active" data-map-style="dark_all" aria-label="Midnight map style">
                         <div class="map-style-preview" style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);"></div>
                         <span>Midnight</span>
                     </button>
-                    <button class="map-style-option" data-map-style="light_all" onclick="setMapStyle('light_all')">
+                    <button class="map-style-option" data-map-style="light_all" aria-label="Light map style">
                         <div class="map-style-preview" style="background: linear-gradient(135deg, #e8e8e8 0%, #f5f5f5 50%, #ffffff 100%);"></div>
                         <span>Light</span>
                     </button>
-                    <button class="map-style-option" data-map-style="voyager" onclick="setMapStyle('voyager')">
+                    <button class="map-style-option" data-map-style="voyager" aria-label="Voyager map style">
                         <div class="map-style-preview" style="background: linear-gradient(135deg, #faf6f1 0%, #e8dfd5 50%, #d4c4b0 100%);"></div>
                         <span>Voyager</span>
                     </button>
-                    <button class="map-style-option" data-map-style="rastertiles/voyager" onclick="setMapStyle('rastertiles/voyager')">
+                    <button class="map-style-option" data-map-style="rastertiles/voyager" aria-label="Explorer map style">
                         <div class="map-style-preview" style="background: linear-gradient(135deg, #f2efe9 0%, #e5e1db 50%, #c5d6c8 100%);"></div>
                         <span>Explorer</span>
                     </button>
                 </div>
             </div>
-            
+
             <div class="settings-info">
+                <div class="info-row">
+                    <span class="info-label">Auth Status</span>
+                    <span class="info-value" id="settingsAuthStatus">--</span>
+                </div>
                 <div class="info-row">
                     <span class="info-label">User ID</span>
                     <span class="info-value" id="settingsUserId">--</span>
@@ -1265,632 +1496,1043 @@
                     <span class="info-label">Connection</span>
                     <span class="info-value" id="settingsConnection">--</span>
                 </div>
+                <div class="info-row">
+                    <span class="info-label">Realtime</span>
+                    <span class="info-value" id="settingsRealtime">--</span>
+                </div>
             </div>
-            
+
             <div class="btn-group">
-                <button class="action-btn primary" onclick="closeSettingsModal()" style="flex: 1;">Done</button>
+                <button class="action-btn primary" id="settingsDoneBtn" style="flex: 1;">Done</button>
             </div>
         </div>
     </div>
-    
-    <!-- Scripts -->
+
+    <!-- ==================== Safe Route Modal ==================== -->
+    <div class="modal-overlay" id="safeRouteModal" role="dialog" aria-modal="true" aria-label="Find safe route">
+        <div class="modal">
+            <h2 class="modal-title">🛡️ Find Safe Route</h2>
+            <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 18px;">
+                Enter start and end addresses in Chicago. We'll find the safest walking route avoiding hazards.
+            </p>
+            <div class="form-group">
+                <label class="form-label" for="startAddress">Start Address</label>
+                <input type="text" class="form-input" id="startAddress" placeholder="e.g., 233 S Wacker Dr, Chicago">
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="endAddress">End Address</label>
+                <input type="text" class="form-input" id="endAddress" placeholder="e.g., 1060 W Addison St, Chicago">
+            </div>
+            <div class="btn-group">
+                <button class="action-btn" id="safeRouteCancelBtn">Cancel</button>
+                <button class="action-btn primary" id="findRoutesBtn">Find Safe Routes</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== Onboarding Modal ==================== -->
+    <div class="modal-overlay" id="onboardingModal" role="dialog" aria-modal="true" aria-label="Welcome to AirScout">
+        <div class="modal" style="max-width: 380px;">
+            <div class="onboarding-content">
+                <div class="onboarding-icon">🌬️</div>
+                <h2 class="onboarding-title">Welcome to <span>AirScout</span></h2>
+                <p class="onboarding-text">
+                    Protecting children with asthma from pollution hazards across Chicago.
+                </p>
+                <div class="onboarding-features">
+                    <div class="onboarding-feature">
+                        <div class="feat-icon">🗺️</div>
+                        <span>View real-time hazard data on an interactive map</span>
+                    </div>
+                    <div class="onboarding-feature">
+                        <div class="feat-icon">🛡️</div>
+                        <span>Find safe walking routes that avoid pollution</span>
+                    </div>
+                    <div class="onboarding-feature">
+                        <div class="feat-icon">🔔</div>
+                        <span>Get alerts when hazards appear near your routes</span>
+                    </div>
+                </div>
+                <div class="btn-group" style="margin-top: 20px;">
+                    <button class="action-btn primary" id="onboardingStartBtn" style="flex: 1;">Get Started</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== Scripts ==================== -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    
-    <!-- Load configuration -->
     <script src="config.js"></script>
-    
+
     <script>
-        // ============================================
-        // Configuration
-        // ============================================
-        const SUPABASE_URL = (typeof AIRSCOUT_CONFIG !== 'undefined') ? AIRSCOUT_CONFIG.SUPABASE_URL : '';
-        const SUPABASE_ANON_KEY = (typeof AIRSCOUT_CONFIG !== 'undefined') ? AIRSCOUT_CONFIG.SUPABASE_ANON_KEY : '';
-        const VAPID_PUBLIC_KEY = (typeof AIRSCOUT_CONFIG !== 'undefined') ? AIRSCOUT_CONFIG.VAPID_PUBLIC_KEY : '';
-        
-        const CHICAGO_CENTER = [41.8781, -87.6298];
-        const ROUTE_BUFFER_METERS = 25;
-        
-        const HAZARD_CONFIG = {
-            PERMIT: { color: '#ff4757', icon: '🏗️', label: 'Demolition', class: 'demolition' },
-            TRAFFIC: { color: '#ffa502', icon: '🚗', label: 'Traffic', class: 'traffic' },
-            SCHOOL: { color: '#3498db', icon: '🏫', label: 'School Zone', class: 'school' }
-        };
-        
-        // Map style configurations (all free, no API key)
-        const MAP_STYLES = {
-            dark_all: {
-                url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
-                name: 'Midnight'
-            },
-            light_all: {
-                url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
-                name: 'Light'
-            },
-            voyager: {
-                url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
-                name: 'Voyager'
-            },
-            'rastertiles/voyager': {
-                url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager_labels_under/{z}/{x}/{y}{r}.png',
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
-                name: 'Explorer'
-            }
-        };
-        
-        // ============================================
-        // State
-        // ============================================
-        let map = null;
-        let drawControl = null;
-        let routeLayer = null;
-        let hazardMarkers = [];
-        let supabase = null;
-        let currentUser = null;
-        let currentRouteCoords = [];
-        let currentTileLayer = null;
-        let currentMapStyle = localStorage.getItem('airscout_map_style') || 'dark_all';
-        let currentAppTheme = localStorage.getItem('airscout_app_theme') || 'dark';
-        
-        // ============================================
-        // Initialize
-        // ============================================
-        document.addEventListener('DOMContentLoaded', async () => {
-            // Load saved theme preferences
-            loadSavedThemes();
-            
-            initTabs();
-            initMap();
-            await initSupabase();
-            await loadHazards();
-            await loadUserRoutes();
-            
-            // Auto-refresh hazards
-            setInterval(loadHazards, 120000);
+    /* ============================================================
+       Utilities
+    ============================================================ */
+    function escapeHtml(str) {
+        if (str == null) return '';
+        const div = document.createElement('div');
+        div.textContent = String(str);
+        return div.innerHTML;
+    }
+
+    function urlBase64ToUint8Array(base64String) {
+        const padding = '='.repeat((4 - base64String.length % 4) % 4);
+        const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+        const rawData = window.atob(base64);
+        const outputArray = new Uint8Array(rawData.length);
+        for (let i = 0; i < rawData.length; ++i) {
+            outputArray[i] = rawData.charCodeAt(i);
+        }
+        return outputArray;
+    }
+
+    function formatDistance(meters) {
+        if (meters >= 1000) return (meters / 1000).toFixed(1) + ' km';
+        return Math.round(meters) + ' m';
+    }
+
+    function formatDuration(seconds) {
+        const mins = Math.round(seconds / 60);
+        if (mins >= 60) return Math.floor(mins / 60) + 'h ' + (mins % 60) + 'min';
+        return mins + ' min';
+    }
+
+    function timeAgo(dateStr) {
+        if (!dateStr) return '';
+        const diff = Date.now() - new Date(dateStr).getTime();
+        const mins = Math.floor(diff / 60000);
+        if (mins < 1) return 'Just now';
+        if (mins < 60) return mins + 'm ago';
+        const hrs = Math.floor(mins / 60);
+        if (hrs < 24) return hrs + 'h ago';
+        return Math.floor(hrs / 24) + 'd ago';
+    }
+
+    /* ============================================================
+       Configuration
+    ============================================================ */
+    const SUPABASE_URL = (typeof AIRSCOUT_CONFIG !== 'undefined') ? AIRSCOUT_CONFIG.SUPABASE_URL : '';
+    const SUPABASE_ANON_KEY = (typeof AIRSCOUT_CONFIG !== 'undefined') ? AIRSCOUT_CONFIG.SUPABASE_ANON_KEY : '';
+    const VAPID_PUBLIC_KEY = (typeof AIRSCOUT_CONFIG !== 'undefined') ? AIRSCOUT_CONFIG.VAPID_PUBLIC_KEY : '';
+
+    const CHICAGO_CENTER = [41.8781, -87.6298];
+    const ROUTE_BUFFER_METERS = 25;
+    const RISK_WEIGHT_MULTIPLIER = 25;
+
+    const HAZARD_CONFIG = {
+        PERMIT:  { color: '#ff4757', icon: '🏗️', label: 'Demolition',   class: 'demolition' },
+        TRAFFIC: { color: '#ffa502', icon: '🚗', label: 'Traffic',      class: 'traffic' },
+        SCHOOL:  { color: '#3498db', icon: '🏫', label: 'School Zone',  class: 'school' },
+        AQI:     { color: '#9b59b6', icon: '🌫️', label: 'Air Quality',  class: 'aqi' }
+    };
+
+    const MAP_STYLES = {
+        dark_all: {
+            url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+            name: 'Midnight'
+        },
+        light_all: {
+            url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+            name: 'Light'
+        },
+        voyager: {
+            url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+            name: 'Voyager'
+        },
+        'rastertiles/voyager': {
+            url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager_labels_under/{z}/{x}/{y}{r}.png',
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+            name: 'Explorer'
+        }
+    };
+
+    /* ============================================================
+       State
+    ============================================================ */
+    let map = null;
+    let drawControl = null;
+    let routeLayer = null;
+    let hazardMarkers = [];
+    let safeRouteLayers = [];
+    let supabase = null;
+    let currentUser = null;
+    let authMethod = null;
+    let currentRouteCoords = [];
+    let currentTileLayer = null;
+    let currentMapStyle = localStorage.getItem('airscout_map_style') || 'dark_all';
+    let currentAppTheme = localStorage.getItem('airscout_app_theme') || 'dark';
+    let realtimeChannel = null;
+    let realtimeConnected = false;
+    let activeFocusTrap = null;
+
+    /* ============================================================
+       Initialization
+    ============================================================ */
+    document.addEventListener('DOMContentLoaded', async () => {
+        loadSavedThemes();
+        initTabs();
+        initMap();
+        bindEvents();
+        await initSupabase();
+        await loadHazards();
+        await loadUserRoutes();
+        subscribeToHazards();
+        showOnboardingIfNeeded();
+        setInterval(loadHazards, 120000);
+    });
+
+    function loadSavedThemes() {
+        if (currentAppTheme === 'light') {
+            document.body.classList.add('light-mode');
+        }
+        document.querySelectorAll('.theme-option').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.appTheme === currentAppTheme);
         });
-        
-        function loadSavedThemes() {
-            // Apply saved app theme
-            if (currentAppTheme === 'light') {
-                document.body.classList.add('light-mode');
-            }
-            
-            // Update theme option buttons
-            document.querySelectorAll('.theme-option').forEach(btn => {
-                btn.classList.toggle('active', btn.dataset.appTheme === currentAppTheme);
+        document.querySelectorAll('.map-style-option').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.mapStyle === currentMapStyle);
+        });
+    }
+
+    function bindEvents() {
+        document.getElementById('refreshBtn').addEventListener('click', refreshHazards);
+        document.getElementById('settingsBtn').addEventListener('click', showSettings);
+        document.getElementById('drawBtn').addEventListener('click', startDrawing);
+        document.getElementById('clearBtn').addEventListener('click', clearRoute);
+        document.getElementById('safeRouteBtn').addEventListener('click', () => openModal('safeRouteModal'));
+        document.getElementById('saveBtn').addEventListener('click', () => openModal('saveModal'));
+
+        document.getElementById('saveCancelBtn').addEventListener('click', () => closeModal('saveModal'));
+        document.getElementById('saveConfirmBtn').addEventListener('click', saveRoute);
+        document.getElementById('settingsDoneBtn').addEventListener('click', () => closeModal('settingsModal'));
+        document.getElementById('safeRouteCancelBtn').addEventListener('click', () => closeModal('safeRouteModal'));
+        document.getElementById('findRoutesBtn').addEventListener('click', findSafeRoutes);
+        document.getElementById('onboardingStartBtn').addEventListener('click', completeOnboarding);
+        document.getElementById('closeCompareBtn').addEventListener('click', clearSafeRoutes);
+
+        document.querySelectorAll('.theme-option').forEach(btn => {
+            btn.addEventListener('click', () => setAppTheme(btn.dataset.appTheme));
+        });
+        document.querySelectorAll('.map-style-option').forEach(btn => {
+            btn.addEventListener('click', () => setMapStyle(btn.dataset.mapStyle));
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeAllModals();
+        });
+    }
+
+    /* ============================================================
+       Tabs
+    ============================================================ */
+    function initTabs() {
+        document.querySelectorAll('.nav-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                const tabId = tab.dataset.tab;
+                document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById('tab-' + tabId).classList.add('active');
+                if (tabId === 'map') {
+                    setTimeout(() => map && map.invalidateSize(), 100);
+                }
             });
-            
-            // Update map style buttons
-            document.querySelectorAll('.map-style-option').forEach(btn => {
-                btn.classList.toggle('active', btn.dataset.mapStyle === currentMapStyle);
-            });
-        }
-        
-        function initTabs() {
-            document.querySelectorAll('.nav-tab').forEach(tab => {
-                tab.addEventListener('click', () => {
-                    const tabId = tab.dataset.tab;
-                    
-                    document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
-                    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-                    
-                    tab.classList.add('active');
-                    document.getElementById(`tab-${tabId}`).classList.add('active');
-                    
-                    if (tabId === 'map') {
-                        setTimeout(() => map.invalidateSize(), 100);
+        });
+    }
+
+    /* ============================================================
+       Map Initialization
+    ============================================================ */
+    function initMap() {
+        map = L.map('map', { zoomControl: false }).setView(CHICAGO_CENTER, 12);
+        L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+        const style = MAP_STYLES[currentMapStyle] || MAP_STYLES.dark_all;
+        currentTileLayer = L.tileLayer(style.url, {
+            maxZoom: 19,
+            attribution: style.attribution
+        }).addTo(map);
+
+        const drawnItems = new L.FeatureGroup();
+        map.addLayer(drawnItems);
+
+        drawControl = new L.Control.Draw({
+            draw: {
+                polyline: {
+                    shapeOptions: {
+                        color: '#00e5c7',
+                        weight: 5,
+                        opacity: 0.9
                     }
-                });
-            });
-        }
-        
-        function initMap() {
-            map = L.map('map', {
-                zoomControl: false
-            }).setView(CHICAGO_CENTER, 12);
-            
-            // Add zoom control to bottom-right
-            L.control.zoom({ position: 'bottomright' }).addTo(map);
-            
-            // Load saved map style (default: dark_all)
-            const style = MAP_STYLES[currentMapStyle] || MAP_STYLES.dark_all;
-            currentTileLayer = L.tileLayer(style.url, {
-                maxZoom: 19,
-                attribution: style.attribution
-            }).addTo(map);
-            
-            // Initialize draw control
-            const drawnItems = new L.FeatureGroup();
-            map.addLayer(drawnItems);
-            
-            drawControl = new L.Control.Draw({
-                draw: {
-                    polyline: {
-                        shapeOptions: {
-                            color: '#00e5c7',
-                            weight: 5,
-                            opacity: 0.9
-                        }
-                    },
-                    polygon: false,
-                    circle: false,
-                    rectangle: false,
-                    marker: false,
-                    circlemarker: false
                 },
-                edit: { featureGroup: drawnItems }
-            });
-            
-            map.on(L.Draw.Event.CREATED, async (e) => {
-                if (routeLayer) map.removeLayer(routeLayer);
-                
-                routeLayer = e.layer;
-                map.addLayer(routeLayer);
-                
-                currentRouteCoords = routeLayer.getLatLngs().map(ll => [ll.lng, ll.lat]);
-                
-                await checkRoute(currentRouteCoords);
-                
-                document.getElementById('saveBtn').style.display = 'flex';
-            });
+                polygon: false,
+                circle: false,
+                rectangle: false,
+                marker: false,
+                circlemarker: false
+            },
+            edit: { featureGroup: drawnItems }
+        });
+
+        map.on(L.Draw.Event.CREATED, async (e) => {
+            if (routeLayer) map.removeLayer(routeLayer);
+            routeLayer = e.layer;
+            map.addLayer(routeLayer);
+            currentRouteCoords = routeLayer.getLatLngs().map(ll => [ll.lng, ll.lat]);
+            await checkRoute(currentRouteCoords);
+            document.getElementById('saveBtn').style.display = 'flex';
+        });
+    }
+
+    /* ============================================================
+       Supabase Auth
+    ============================================================ */
+    async function initSupabase() {
+        if (!SUPABASE_URL || SUPABASE_URL.includes('YOUR_')) {
+            console.warn('Supabase not configured');
+            return;
         }
-        
-        async function initSupabase() {
-            if (!SUPABASE_URL || SUPABASE_URL === 'YOUR_SUPABASE_URL') {
-                console.warn('Supabase not configured - using demo mode');
-                return;
-            }
-            
+
+        try {
             supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-            
-            currentUser = localStorage.getItem('airscout_user_id');
-            if (!currentUser) {
-                currentUser = 'anon_' + Math.random().toString(36).substr(2, 9);
-                localStorage.setItem('airscout_user_id', currentUser);
-            }
-        }
-        
-        // ============================================
-        // Route Drawing
-        // ============================================
-        function startDrawing() {
-            new L.Draw.Polyline(map, drawControl.options.draw.polyline).enable();
-        }
-        
-        function clearRoute() {
-            if (routeLayer) {
-                map.removeLayer(routeLayer);
-                routeLayer = null;
-            }
-            currentRouteCoords = [];
-            document.getElementById('saveBtn').style.display = 'none';
-            document.getElementById('statusCard').classList.remove('active');
-            
-            // Clear hazard highlights
-            hazardMarkers.forEach(m => {
-                if (m._highlighted) {
-                    m.setStyle({ weight: 2, opacity: 0.7 });
-                    m._highlighted = false;
-                }
-            });
-        }
-        
-        // ============================================
-        // Route Checking
-        // ============================================
-        async function checkRoute(coords) {
-            const card = document.getElementById('statusCard');
-            const scoreEl = document.getElementById('riskScore');
-            const descEl = document.getElementById('riskDescription');
-            
-            card.classList.add('active');
-            scoreEl.textContent = '...';
-            descEl.textContent = 'Analyzing route...';
-            
-            try {
-                let result;
-                
-                if (supabase) {
-                    const routeWkt = `LINESTRING(${coords.map(c => `${c[0]} ${c[1]}`).join(', ')})`;
-                    
-                    const { data, error } = await supabase.rpc('check_route_hazards', {
-                        route_wkt: routeWkt,
-                        buffer_meters: ROUTE_BUFFER_METERS,
-                        min_severity: 1
-                    });
-                    
-                    if (error) throw error;
-                    result = calculateRisk(data || []);
-                } else {
-                    result = { score: Math.floor(Math.random() * 60) + 20, level: 'moderate', hazards: getDemoHazards() };
-                }
-                
-                scoreEl.textContent = result.score;
-                scoreEl.className = `risk-score ${result.level}`;
-                
-                const hazardCount = result.hazards?.length || 0;
-                descEl.textContent = hazardCount > 0 
-                    ? `${result.level.toUpperCase()} risk • ${hazardCount} hazard${hazardCount > 1 ? 's' : ''} nearby`
-                    : 'No hazards detected on this route';
-                
-                highlightRouteHazards(result.hazards || []);
-                
-            } catch (error) {
-                console.error('Error checking route:', error);
-                descEl.textContent = 'Error analyzing route';
-            }
-        }
-        
-        function calculateRisk(hazards) {
-            if (!hazards.length) return { score: 0, level: 'low', hazards: [] };
-            
-            let totalScore = hazards.reduce((sum, h) => {
-                const distWeight = Math.max(0, 1 - (h.distance_meters / ROUTE_BUFFER_METERS));
-                return sum + (distWeight * (h.severity / 5) * 25);
-            }, 0);
-            
-            const score = Math.min(100, Math.round(totalScore));
-            let level = 'low';
-            if (score >= 70) level = 'high';
-            else if (score >= 40) level = 'moderate';
-            
-            return { score, level, hazards };
-        }
-        
-        function highlightRouteHazards(hazards) {
-            hazards.forEach(h => {
-                const config = HAZARD_CONFIG[h.type] || HAZARD_CONFIG.PERMIT;
-                
-                const marker = L.circleMarker([h.latitude, h.longitude], {
-                    radius: 12 + h.severity * 2,
-                    fillColor: config.color,
-                    color: '#fff',
-                    weight: 3,
-                    opacity: 1,
-                    fillOpacity: 0.9
-                }).addTo(map);
-                
-                marker.bindPopup(`
-                    <div style="font-family: 'Outfit', sans-serif; padding: 4px;">
-                        <strong style="font-size: 14px;">${config.icon} ${config.label}</strong><br>
-                        <span style="color: #666; font-size: 12px;">${h.description || 'Active hazard'}</span><br>
-                        <span style="color: #888; font-size: 11px;">Severity: ${h.severity}/5 • ${Math.round(h.distance_meters)}m away</span>
-                    </div>
-                `);
-                
-                marker._highlighted = true;
-                hazardMarkers.push(marker);
-            });
-        }
-        
-        // ============================================
-        // Hazard Loading
-        // ============================================
-        async function loadHazards() {
-            try {
-                let hazards;
-                
-                if (supabase) {
-                    // Use RPC function that properly extracts lat/lng from PostGIS geometry
-                    const { data, error } = await supabase.rpc('get_map_hazards', {
-                        p_min_severity: 1,
-                        p_limit: 500
-                    });
-                    
-                    if (error) throw error;
-                    hazards = data || [];
-                    console.log(`Loaded ${hazards.length} hazards from database`);
-                } else {
-                    hazards = getDemoHazards();
-                }
-                
-                updateMapMarkers(hazards);
-            } catch (error) {
-                console.error('Error loading hazards:', error);
-                // Fallback to demo data on error
-                updateMapMarkers(getDemoHazards());
-            }
-        }
-        
-        function refreshHazards() {
-            loadHazards();
-        }
-        
-        function updateMapMarkers(hazards) {
-            // Clear non-highlighted markers
-            hazardMarkers = hazardMarkers.filter(m => {
-                if (!m._highlighted) {
-                    map.removeLayer(m);
-                    return false;
-                }
-                return true;
-            });
-            
-            hazards.forEach(h => {
-                const lat = h.latitude || h.location?.coordinates?.[1];
-                const lng = h.longitude || h.location?.coordinates?.[0];
-                if (!lat || !lng) return;
-                
-                const config = HAZARD_CONFIG[h.type] || HAZARD_CONFIG.PERMIT;
-                
-                const marker = L.circleMarker([lat, lng], {
-                    radius: 6 + h.severity,
-                    fillColor: config.color,
-                    color: config.color,
-                    weight: 2,
-                    opacity: 0.7,
-                    fillOpacity: 0.4
-                }).addTo(map);
-                
-                marker.bindPopup(`
-                    <div style="font-family: 'Outfit', sans-serif; padding: 4px;">
-                        <strong>${config.icon} ${config.label}</strong><br>
-                        <span style="color: #666; font-size: 12px;">${h.description || 'No description'}</span><br>
-                        <span style="color: #888; font-size: 11px;">Severity: ${h.severity}/5</span>
-                    </div>
-                `);
-                
-                hazardMarkers.push(marker);
-            });
-        }
-        
-        // ============================================
-        // Route Saving
-        // ============================================
-        function showSaveModal() {
-            document.getElementById('saveModal').classList.add('active');
-        }
-        
-        function closeModal() {
-            document.getElementById('saveModal').classList.remove('active');
-        }
-        
-        async function saveRoute() {
-            const name = document.getElementById('routeName').value || 'My Route';
-            const threshold = parseInt(document.getElementById('severityThreshold').value);
-            
-            if (currentRouteCoords.length < 2) {
-                alert('Please draw a route first');
-                return;
-            }
-            
-            try {
-                if (supabase) {
-                    const routeWkt = `LINESTRING(${currentRouteCoords.map(c => `${c[0]} ${c[1]}`).join(', ')})`;
-                    
-                    let pushToken = null;
-                    if ('Notification' in window && Notification.permission === 'granted') {
-                        pushToken = await getPushSubscription();
-                    }
-                    
-                    const { error } = await supabase.rpc('subscribe_to_route', {
-                        p_user_id: currentUser,
-                        p_route_wkt: routeWkt,
-                        p_route_name: name,
-                        p_push_token: pushToken,
-                        p_severity_threshold: threshold
-                    });
-                    
-                    if (error) throw error;
-                    alert('✅ Route saved! You\'ll receive alerts for hazards on this route.');
-                } else {
-                    const routes = JSON.parse(localStorage.getItem('airscout_routes') || '[]');
-                    routes.push({ id: Date.now(), name, coords: currentRouteCoords, threshold, alertsEnabled: true });
-                    localStorage.setItem('airscout_routes', JSON.stringify(routes));
-                    alert('Route saved locally (demo mode)');
-                }
-                
-                closeModal();
-                loadUserRoutes();
-            } catch (error) {
-                console.error('Error saving route:', error);
-                alert('Failed to save route');
-            }
-        }
-        
-        async function loadUserRoutes() {
-            const container = document.getElementById('routesContainer');
-            
-            try {
-                let routes;
-                
-                if (supabase) {
-                    const { data, error } = await supabase.rpc('get_user_subscriptions', { p_user_id: currentUser });
-                    if (error) throw error;
-                    routes = data;
-                } else {
-                    routes = JSON.parse(localStorage.getItem('airscout_routes') || '[]');
-                }
-                
-                if (!routes?.length) {
-                    container.innerHTML = `
-                        <div class="empty-state">
-                            <div class="empty-icon">📍</div>
-                            <h3 class="empty-title">No Saved Routes</h3>
-                            <p class="empty-description">Draw a route on the map and save it to receive hazard alerts</p>
-                        </div>
-                    `;
+
+            const { data: { user } } = await supabase.auth.getUser();
+
+            if (user) {
+                currentUser = user.id;
+                authMethod = user.is_anonymous ? 'anonymous' : 'authenticated';
+            } else {
+                const { data, error } = await supabase.auth.signInAnonymously();
+                if (error) {
+                    console.error('Anonymous sign-in failed:', error);
                     return;
                 }
-                
-                container.innerHTML = routes.map(route => `
-                    <div class="route-card">
-                        <div class="route-header">
-                            <div>
-                                <div class="route-name">${route.route_name || route.name}</div>
-                                <div class="route-meta">Alert threshold: ${route.severity_threshold || route.threshold}+</div>
-                            </div>
-                            <div class="route-actions">
-                                <button class="route-action-btn" onclick="viewRoute('${route.id}')" title="View">👁️</button>
-                                <button class="route-action-btn" onclick="deleteRoute('${route.id}')" title="Delete">🗑️</button>
-                            </div>
-                        </div>
-                        <div class="route-footer">
-                            <div class="route-stat">
-                                <div class="dot"></div>
-                                <span>Alerts ${route.alert_enabled !== false ? 'enabled' : 'disabled'}</span>
-                            </div>
-                            <label class="toggle">
-                                <input type="checkbox" ${route.alert_enabled !== false ? 'checked' : ''} 
-                                       onchange="toggleAlerts('${route.id}', this.checked)">
-                                <div class="toggle-track">
-                                    <div class="toggle-thumb"></div>
-                                </div>
-                            </label>
-                        </div>
-                    </div>
-                `).join('');
-                
-            } catch (error) {
-                console.error('Error loading routes:', error);
-                container.innerHTML = '<p style="text-align: center; color: var(--text-muted); padding: 20px;">Failed to load routes</p>';
+                currentUser = data.user.id;
+                authMethod = 'anonymous';
             }
+
+            console.log('Authenticated as', currentUser, '(' + authMethod + ')');
+        } catch (err) {
+            console.error('Supabase init error:', err);
         }
-        
-        async function toggleAlerts(routeId, enabled) {
-            if (supabase) {
-                await supabase.rpc('update_subscription_alerts', {
-                    p_subscription_id: routeId,
-                    p_user_id: currentUser,
-                    p_alert_enabled: enabled
+    }
+
+    /* ============================================================
+       Supabase Realtime
+    ============================================================ */
+    function subscribeToHazards() {
+        if (!supabase) return;
+
+        try {
+            realtimeChannel = supabase
+                .channel('hazards-realtime')
+                .on(
+                    'postgres_changes',
+                    { event: '*', schema: 'public', table: 'hazards_active' },
+                    (payload) => {
+                        console.log('Realtime hazard update:', payload.eventType);
+                        loadHazards();
+                    }
+                )
+                .subscribe((status) => {
+                    if (status === 'SUBSCRIBED') {
+                        realtimeConnected = true;
+                        document.getElementById('liveIndicator').classList.add('active');
+                    } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
+                        realtimeConnected = false;
+                        document.getElementById('liveIndicator').classList.remove('active');
+                    }
+                });
+        } catch (err) {
+            console.error('Realtime subscription error:', err);
+        }
+    }
+
+    /* ============================================================
+       Route Drawing
+    ============================================================ */
+    function startDrawing() {
+        new L.Draw.Polyline(map, drawControl.options.draw.polyline).enable();
+    }
+
+    function clearRoute() {
+        if (routeLayer) {
+            map.removeLayer(routeLayer);
+            routeLayer = null;
+        }
+        currentRouteCoords = [];
+        document.getElementById('saveBtn').style.display = 'none';
+        document.getElementById('statusCard').classList.remove('active');
+
+        hazardMarkers.forEach(m => {
+            if (m._highlighted) {
+                m.setStyle({ weight: 2, opacity: 0.7 });
+                m._highlighted = false;
+            }
+        });
+    }
+
+    /* ============================================================
+       Route Checking & Risk Scoring
+    ============================================================ */
+    async function checkRoute(coords) {
+        const card = document.getElementById('statusCard');
+        const scoreEl = document.getElementById('riskScore');
+        const descEl = document.getElementById('riskDescription');
+
+        card.classList.add('active');
+        scoreEl.textContent = '...';
+        scoreEl.className = 'risk-score';
+        descEl.textContent = 'Analyzing route...';
+
+        try {
+            if (!supabase) {
+                descEl.textContent = 'Unable to analyze — no backend connection';
+                scoreEl.textContent = '--';
+                return { score: 0, level: 'low', hazards: [] };
+            }
+
+            const routeWkt = 'LINESTRING(' + coords.map(c => c[0] + ' ' + c[1]).join(', ') + ')';
+
+            const { data, error } = await supabase.rpc('check_route_hazards', {
+                route_wkt: routeWkt,
+                buffer_meters: ROUTE_BUFFER_METERS,
+                min_severity: 1
+            });
+
+            if (error) throw error;
+
+            const result = calculateRisk(data || []);
+
+            scoreEl.textContent = result.score;
+            scoreEl.className = 'risk-score ' + result.level;
+
+            const hazardCount = result.hazards.length;
+            descEl.textContent = hazardCount > 0
+                ? result.level.toUpperCase() + ' risk \u2022 ' + hazardCount + ' hazard' + (hazardCount > 1 ? 's' : '') + ' nearby'
+                : 'No hazards detected on this route';
+
+            highlightRouteHazards(result.hazards);
+            return result;
+
+        } catch (error) {
+            console.error('Error checking route:', error);
+            descEl.textContent = 'Error analyzing route';
+            scoreEl.textContent = '--';
+            return { score: 0, level: 'low', hazards: [] };
+        }
+    }
+
+    function calculateRisk(hazards) {
+        if (!hazards.length) return { score: 0, level: 'low', hazards: [] };
+
+        let totalScore = hazards.reduce((sum, h) => {
+            const distWeight = Math.max(0, 1 - (h.distance_meters / ROUTE_BUFFER_METERS));
+            return sum + (distWeight * (h.severity / 5) * RISK_WEIGHT_MULTIPLIER);
+        }, 0);
+
+        const score = Math.min(100, Math.round(totalScore));
+        let level = 'low';
+        if (score >= 70) level = 'high';
+        else if (score >= 40) level = 'moderate';
+
+        return { score, level, hazards };
+    }
+
+    function highlightRouteHazards(hazards) {
+        hazards.forEach(h => {
+            const config = HAZARD_CONFIG[h.type] || HAZARD_CONFIG.PERMIT;
+
+            const marker = L.circleMarker([h.latitude, h.longitude], {
+                radius: 12 + h.severity * 2,
+                fillColor: config.color,
+                color: '#fff',
+                weight: 3,
+                opacity: 1,
+                fillOpacity: 0.9
+            }).addTo(map);
+
+            marker.bindPopup(
+                '<div style="font-family:\'Outfit\',sans-serif;padding:4px;">' +
+                '<strong style="font-size:14px;">' + escapeHtml(config.icon) + ' ' + escapeHtml(config.label) + '</strong><br>' +
+                '<span style="color:#666;font-size:12px;">' + escapeHtml(h.description || 'Active hazard') + '</span><br>' +
+                '<span style="color:#888;font-size:11px;">Severity: ' + escapeHtml(h.severity) + '/5 \u2022 ' + Math.round(h.distance_meters) + 'm away</span>' +
+                '</div>'
+            );
+
+            marker._highlighted = true;
+            hazardMarkers.push(marker);
+        });
+    }
+
+    /* ============================================================
+       Hazard Loading (no demo fallback)
+    ============================================================ */
+    async function loadHazards() {
+        try {
+            if (!supabase) {
+                console.warn('Supabase not connected — cannot load hazards');
+                return;
+            }
+
+            const { data, error } = await supabase.rpc('get_map_hazards', {
+                p_min_severity: 1,
+                p_limit: 500
+            });
+
+            if (error) throw error;
+
+            const hazards = data || [];
+            console.log('Loaded ' + hazards.length + ' hazards from database');
+            updateMapMarkers(hazards);
+
+        } catch (error) {
+            console.error('Error loading hazards:', error);
+        }
+    }
+
+    function refreshHazards() {
+        loadHazards();
+    }
+
+    function updateMapMarkers(hazards) {
+        hazardMarkers = hazardMarkers.filter(m => {
+            if (!m._highlighted) {
+                map.removeLayer(m);
+                return false;
+            }
+            return true;
+        });
+
+        hazards.forEach(h => {
+            const lat = h.latitude || (h.location && h.location.coordinates && h.location.coordinates[1]);
+            const lng = h.longitude || (h.location && h.location.coordinates && h.location.coordinates[0]);
+            if (!lat || !lng) return;
+
+            const config = HAZARD_CONFIG[h.type] || HAZARD_CONFIG.PERMIT;
+
+            const marker = L.circleMarker([lat, lng], {
+                radius: 6 + h.severity,
+                fillColor: config.color,
+                color: config.color,
+                weight: 2,
+                opacity: 0.7,
+                fillOpacity: 0.4
+            }).addTo(map);
+
+            marker.bindPopup(
+                '<div style="font-family:\'Outfit\',sans-serif;padding:4px;">' +
+                '<strong>' + escapeHtml(config.icon) + ' ' + escapeHtml(config.label) + '</strong><br>' +
+                '<span style="color:#666;font-size:12px;">' + escapeHtml(h.description || 'No description') + '</span><br>' +
+                '<span style="color:#888;font-size:11px;">Severity: ' + escapeHtml(h.severity) + '/5</span>' +
+                '</div>'
+            );
+
+            hazardMarkers.push(marker);
+        });
+    }
+
+    /* ============================================================
+       Route Saving
+    ============================================================ */
+    async function saveRoute() {
+        const name = document.getElementById('routeName').value.trim() || 'My Route';
+        const threshold = parseInt(document.getElementById('severityThreshold').value);
+        const morningBriefing = document.getElementById('morningBriefing').checked;
+
+        if (currentRouteCoords.length < 2) {
+            alert('Please draw a route first');
+            return;
+        }
+
+        try {
+            if (!supabase) {
+                alert('Cannot save — no backend connection. Please check your configuration.');
+                return;
+            }
+
+            const routeWkt = 'LINESTRING(' + currentRouteCoords.map(c => c[0] + ' ' + c[1]).join(', ') + ')';
+
+            let pushToken = null;
+            if ('Notification' in window && Notification.permission === 'granted') {
+                pushToken = await getPushSubscription();
+            }
+
+            const { error } = await supabase.rpc('subscribe_to_route', {
+                p_user_id: currentUser,
+                p_route_wkt: routeWkt,
+                p_route_name: name,
+                p_push_token: pushToken,
+                p_severity_threshold: threshold,
+                p_morning_briefing: morningBriefing
+            });
+
+            if (error) throw error;
+
+            alert('Route saved! You\'ll receive alerts for hazards on this route.');
+            closeModal('saveModal');
+            document.getElementById('routeName').value = '';
+            document.getElementById('morningBriefing').checked = false;
+            loadUserRoutes();
+
+        } catch (error) {
+            console.error('Error saving route:', error);
+            alert('Failed to save route: ' + (error.message || 'Unknown error'));
+        }
+    }
+
+    async function loadUserRoutes() {
+        const container = document.getElementById('routesContainer');
+
+        try {
+            if (!supabase) {
+                container.innerHTML = '';
+                const div = document.createElement('div');
+                div.className = 'error-state';
+                div.innerHTML = '<div class="error-icon">⚠️</div><div class="error-message">Unable to load routes — check connection</div>';
+                container.appendChild(div);
+                return;
+            }
+
+            const { data, error } = await supabase.rpc('get_user_subscriptions', { p_user_id: currentUser });
+            if (error) throw error;
+
+            const routes = data;
+
+            if (!routes || !routes.length) {
+                container.innerHTML = '';
+                const div = document.createElement('div');
+                div.className = 'empty-state';
+                div.innerHTML =
+                    '<div class="empty-icon">📍</div>' +
+                    '<h3 class="empty-title">No Saved Routes</h3>' +
+                    '<p class="empty-description">Draw a route on the map and save it to receive hazard alerts</p>';
+                container.appendChild(div);
+                return;
+            }
+
+            container.innerHTML = '';
+            routes.forEach(route => {
+                const routeName = escapeHtml(route.route_name || route.name || 'Unnamed Route');
+                const threshold = escapeHtml(route.severity_threshold || route.threshold || 3);
+                const alertEnabled = route.alert_enabled !== false;
+                const hasBriefing = route.morning_briefing === true;
+                const lastChecked = route.last_checked_at || route.updated_at || '';
+                const routeId = escapeHtml(route.id);
+
+                const card = document.createElement('div');
+                card.className = 'route-card';
+                card.innerHTML =
+                    '<div class="route-header">' +
+                        '<div>' +
+                            '<div class="route-name">' + routeName + '</div>' +
+                            '<div class="route-meta">Alert threshold: ' + threshold + '+</div>' +
+                            (hasBriefing ? '<div class="route-briefing-badge">☀️ Morning briefing</div>' : '') +
+                            (lastChecked ? '<div class="route-last-checked">Last checked: ' + escapeHtml(timeAgo(lastChecked)) + '</div>' : '') +
+                        '</div>' +
+                        '<div class="route-actions">' +
+                            '<button class="route-action-btn" data-action="view" data-id="' + routeId + '" aria-label="View route on map">👁️</button>' +
+                            '<button class="route-action-btn" data-action="delete" data-id="' + routeId + '" aria-label="Delete route">🗑️</button>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="route-footer">' +
+                        '<div class="route-stat">' +
+                            '<div class="dot" style="background:' + (alertEnabled ? 'var(--safe)' : 'var(--text-muted)') + '"></div>' +
+                            '<span>Alerts ' + (alertEnabled ? 'enabled' : 'disabled') + '</span>' +
+                        '</div>' +
+                        '<label class="toggle">' +
+                            '<input type="checkbox" data-action="toggle" data-id="' + routeId + '" ' + (alertEnabled ? 'checked' : '') + '>' +
+                            '<div class="toggle-track"><div class="toggle-thumb"></div></div>' +
+                        '</label>' +
+                    '</div>';
+                container.appendChild(card);
+            });
+
+            container.addEventListener('click', handleRouteAction);
+            container.addEventListener('change', handleRouteAction);
+
+        } catch (error) {
+            console.error('Error loading routes:', error);
+            container.innerHTML = '';
+            const div = document.createElement('div');
+            div.className = 'error-state';
+            div.innerHTML = '<div class="error-icon">⚠️</div><div class="error-message">Failed to load routes</div>';
+            container.appendChild(div);
+        }
+    }
+
+    function handleRouteAction(e) {
+        const target = e.target.closest('[data-action]');
+        if (!target) return;
+
+        const action = target.dataset.action;
+        const id = target.dataset.id;
+
+        if (action === 'view') viewRoute(id);
+        else if (action === 'delete') deleteRoute(id);
+        else if (action === 'toggle') toggleAlerts(id, target.checked);
+    }
+
+    async function toggleAlerts(routeId, enabled) {
+        if (!supabase) return;
+        try {
+            await supabase.rpc('update_subscription_alerts', {
+                p_subscription_id: routeId,
+                p_user_id: currentUser,
+                p_alert_enabled: enabled
+            });
+        } catch (err) {
+            console.error('Error toggling alerts:', err);
+        }
+    }
+
+    async function deleteRoute(routeId) {
+        if (!confirm('Delete this route?')) return;
+
+        if (!supabase) return;
+
+        try {
+            await supabase.rpc('delete_subscription', { p_subscription_id: routeId, p_user_id: currentUser });
+            loadUserRoutes();
+        } catch (err) {
+            console.error('Error deleting route:', err);
+        }
+    }
+
+    function viewRoute(routeId) {
+        document.querySelector('.nav-tab[data-tab="map"]').click();
+    }
+
+    /* ============================================================
+       Safe Route Finder (OSRM + Nominatim)
+    ============================================================ */
+    async function geocodeAddress(address) {
+        const url = 'https://nominatim.openstreetmap.org/search?format=json&q=' +
+            encodeURIComponent(address) + '&limit=1&countrycodes=us';
+
+        const response = await fetch(url, {
+            headers: { 'User-Agent': 'AirScout-PWA/1.0' }
+        });
+        const data = await response.json();
+
+        if (!data || !data.length) return null;
+        return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+    }
+
+    async function findSafeRoutes() {
+        const startAddr = document.getElementById('startAddress').value.trim();
+        const endAddr = document.getElementById('endAddress').value.trim();
+
+        if (!startAddr || !endAddr) {
+            alert('Please enter both start and end addresses.');
+            return;
+        }
+
+        const btn = document.getElementById('findRoutesBtn');
+        btn.disabled = true;
+        btn.textContent = 'Finding routes...';
+
+        try {
+            const [startCoords, endCoords] = await Promise.all([
+                geocodeAddress(startAddr),
+                geocodeAddress(endAddr)
+            ]);
+
+            if (!startCoords || !endCoords) {
+                alert('Could not find one or both addresses. Try being more specific (include "Chicago, IL").');
+                return;
+            }
+
+            const osrmUrl = 'https://router.project-osrm.org/route/v1/foot/' +
+                startCoords.lng + ',' + startCoords.lat + ';' +
+                endCoords.lng + ',' + endCoords.lat +
+                '?alternatives=3&overview=full&geometries=geojson';
+
+            const response = await fetch(osrmUrl);
+            const data = await response.json();
+
+            if (data.code !== 'Ok' || !data.routes || !data.routes.length) {
+                alert('Could not find routes between these addresses. OSRM may not support foot routing — try closer addresses.');
+                return;
+            }
+
+            closeModal('safeRouteModal');
+            clearSafeRoutes();
+
+            const routeResults = [];
+
+            for (let i = 0; i < data.routes.length; i++) {
+                const route = data.routes[i];
+                const coords = route.geometry.coordinates;
+                let riskResult = { score: 0, level: 'low', hazards: [] };
+
+                if (supabase) {
+                    try {
+                        const routeWkt = 'LINESTRING(' + coords.map(c => c[0] + ' ' + c[1]).join(', ') + ')';
+                        const { data: hazardData, error } = await supabase.rpc('check_route_hazards', {
+                            route_wkt: routeWkt,
+                            buffer_meters: ROUTE_BUFFER_METERS,
+                            min_severity: 1
+                        });
+                        if (!error && hazardData) {
+                            riskResult = calculateRisk(hazardData);
+                        }
+                    } catch (err) {
+                        console.error('Error checking route ' + i + ':', err);
+                    }
+                }
+
+                routeResults.push({
+                    index: i,
+                    coords: coords,
+                    distance: route.distance,
+                    duration: route.duration,
+                    risk: riskResult
                 });
             }
-        }
-        
-        async function deleteRoute(routeId) {
-            if (!confirm('Delete this route?')) return;
-            
-            if (supabase) {
-                await supabase.rpc('delete_subscription', { p_subscription_id: routeId, p_user_id: currentUser });
-            } else {
-                const routes = JSON.parse(localStorage.getItem('airscout_routes') || '[]');
-                localStorage.setItem('airscout_routes', JSON.stringify(routes.filter(r => r.id != routeId)));
+
+            routeResults.sort((a, b) => a.risk.score - b.risk.score);
+
+            const colors = ['#2ed573', '#ffa502', '#ff4757'];
+            const classes = ['safest', 'middle', 'hazardous'];
+            const labels = ['Safest', 'Moderate', 'Most Hazardous'];
+
+            routeResults.forEach((result, i) => {
+                const color = colors[Math.min(i, colors.length - 1)];
+                const latLngs = result.coords.map(c => [c[1], c[0]]);
+
+                const polyline = L.polyline(latLngs, {
+                    color: color,
+                    weight: i === 0 ? 6 : 4,
+                    opacity: i === 0 ? 0.9 : 0.6,
+                    dashArray: i > 0 ? '10, 10' : null
+                }).addTo(map);
+
+                safeRouteLayers.push(polyline);
+                result.color = color;
+                result.cssClass = classes[Math.min(i, classes.length - 1)];
+                result.label = labels[Math.min(i, labels.length - 1)];
+            });
+
+            const allLatLngs = routeResults.flatMap(r => r.coords.map(c => [c[1], c[0]]));
+            if (allLatLngs.length) {
+                map.fitBounds(L.latLngBounds(allLatLngs), { padding: [80, 80] });
             }
-            
-            loadUserRoutes();
+
+            showRouteComparison(routeResults);
+
+        } catch (error) {
+            console.error('Error finding safe routes:', error);
+            alert('Error finding routes. Please try again.');
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'Find Safe Routes';
         }
-        
-        function viewRoute(routeId) {
-            // Switch to map tab
-            document.querySelector('.nav-tab[data-tab="map"]').click();
-        }
-        
-        // ============================================
-        // Push Notifications
-        // ============================================
-        async function getPushSubscription() {
-            try {
-                const reg = await navigator.serviceWorker.ready;
-                let sub = await reg.pushManager.getSubscription();
-                
-                if (!sub) {
-                    const permission = await Notification.requestPermission();
-                    if (permission !== 'granted') return null;
-                    
-                    if (!VAPID_PUBLIC_KEY) {
-                        console.warn('VAPID_PUBLIC_KEY not configured');
-                        return null;
-                    }
-                    
-                    sub = await reg.pushManager.subscribe({
-                        userVisibleOnly: true,
-                        applicationServerKey: VAPID_PUBLIC_KEY
-                    });
+    }
+
+    function showRouteComparison(routeResults) {
+        const panel = document.getElementById('routeComparePanel');
+        const container = document.getElementById('compareRoutes');
+        container.innerHTML = '';
+
+        routeResults.forEach((r, i) => {
+            const card = document.createElement('div');
+            card.className = 'compare-card ' + r.cssClass;
+            card.innerHTML =
+                '<div class="compare-card-label">' + escapeHtml(r.label) + '</div>' +
+                '<div class="compare-stat">Distance: <strong>' + formatDistance(r.distance) + '</strong></div>' +
+                '<div class="compare-stat">Time: <strong>' + formatDuration(r.duration) + '</strong></div>' +
+                '<div class="compare-stat">Risk: <strong>' + r.risk.score + '/100</strong></div>' +
+                '<div class="compare-stat">Hazards: <strong>' + r.risk.hazards.length + '</strong></div>';
+            container.appendChild(card);
+        });
+
+        panel.classList.add('active');
+    }
+
+    function clearSafeRoutes() {
+        safeRouteLayers.forEach(layer => map.removeLayer(layer));
+        safeRouteLayers = [];
+        document.getElementById('routeComparePanel').classList.remove('active');
+    }
+
+    /* ============================================================
+       Push Notifications
+    ============================================================ */
+    async function getPushSubscription() {
+        try {
+            const reg = await navigator.serviceWorker.ready;
+            let sub = await reg.pushManager.getSubscription();
+
+            if (!sub) {
+                const permission = await Notification.requestPermission();
+                if (permission !== 'granted') return null;
+
+                if (!VAPID_PUBLIC_KEY) {
+                    console.warn('VAPID_PUBLIC_KEY not configured');
+                    return null;
                 }
-                
-                return JSON.stringify(sub.toJSON());
-            } catch (error) {
-                console.error('Push subscription error:', error);
-                return null;
+
+                sub = await reg.pushManager.subscribe({
+                    userVisibleOnly: true,
+                    applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+                });
             }
+
+            return JSON.stringify(sub.toJSON());
+        } catch (error) {
+            console.error('Push subscription error:', error);
+            return null;
         }
-        
-        // ============================================
-        // Demo Data
-        // ============================================
-        function getDemoHazards() {
-            return [
-                { id: 1, type: 'PERMIT', severity: 4, description: 'Active demolition - Madison St', latitude: 41.8819, longitude: -87.6278, distance_meters: 15 },
-                { id: 2, type: 'SCHOOL', severity: 5, description: 'Lincoln Elementary - Peak hours', latitude: 41.9219, longitude: -87.6534, distance_meters: 8 },
-                { id: 3, type: 'TRAFFIC', severity: 3, description: 'Congestion on I-90/94', latitude: 41.8729, longitude: -87.6215, distance_meters: 22 },
-                { id: 4, type: 'PERMIT', severity: 3, description: 'Construction - State St', latitude: 41.8901, longitude: -87.6281, distance_meters: 18 }
-            ];
+    }
+
+    /* ============================================================
+       Settings & Theme
+    ============================================================ */
+    function showSettings() {
+        const truncatedId = currentUser
+            ? (currentUser.length > 12 ? currentUser.substring(0, 12) + '...' : currentUser)
+            : 'Not set';
+        document.getElementById('settingsUserId').textContent = truncatedId;
+        document.getElementById('settingsAuthStatus').textContent = authMethod
+            ? ('Signed in (' + authMethod + ')')
+            : 'Not authenticated';
+        document.getElementById('settingsConnection').textContent = supabase ? '✓ Connected' : '✗ Not connected';
+        document.getElementById('settingsRealtime').textContent = realtimeConnected ? '✓ Live' : '✗ Inactive';
+
+        document.querySelectorAll('.theme-option').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.appTheme === currentAppTheme);
+        });
+        document.querySelectorAll('.map-style-option').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.mapStyle === currentMapStyle);
+        });
+
+        openModal('settingsModal');
+    }
+
+    function setAppTheme(theme) {
+        currentAppTheme = theme;
+        localStorage.setItem('airscout_app_theme', theme);
+        document.body.classList.toggle('light-mode', theme === 'light');
+        document.querySelectorAll('.theme-option').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.appTheme === theme);
+        });
+    }
+
+    function setMapStyle(styleKey) {
+        const style = MAP_STYLES[styleKey];
+        if (!style) return;
+
+        currentMapStyle = styleKey;
+        localStorage.setItem('airscout_map_style', styleKey);
+
+        if (currentTileLayer) map.removeLayer(currentTileLayer);
+
+        currentTileLayer = L.tileLayer(style.url, {
+            maxZoom: 19,
+            attribution: style.attribution
+        }).addTo(map);
+
+        document.querySelectorAll('.map-style-option').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.mapStyle === styleKey);
+        });
+    }
+
+    /* ============================================================
+       Modal Management (open, close, focus trap, escape)
+    ============================================================ */
+    function openModal(id) {
+        const overlay = document.getElementById(id);
+        if (!overlay) return;
+        overlay.classList.add('active');
+
+        const modal = overlay.querySelector('.modal');
+        if (modal) {
+            activeFocusTrap = trapFocus(modal);
         }
-        
-        // ============================================
-        // Settings & Theme
-        // ============================================
-        function showSettings() {
-            // Update settings info
-            document.getElementById('settingsUserId').textContent = currentUser || 'Not set';
-            document.getElementById('settingsConnection').textContent = supabase ? '✓ Connected' : 'Demo mode';
-            
-            // Update active states
-            document.querySelectorAll('.theme-option').forEach(btn => {
-                btn.classList.toggle('active', btn.dataset.appTheme === currentAppTheme);
-            });
-            document.querySelectorAll('.map-style-option').forEach(btn => {
-                btn.classList.toggle('active', btn.dataset.mapStyle === currentMapStyle);
-            });
-            
-            document.getElementById('settingsModal').classList.add('active');
+    }
+
+    function closeModal(id) {
+        const overlay = document.getElementById(id);
+        if (!overlay) return;
+        overlay.classList.remove('active');
+
+        if (activeFocusTrap) {
+            activeFocusTrap();
+            activeFocusTrap = null;
         }
-        
-        function closeSettingsModal() {
-            document.getElementById('settingsModal').classList.remove('active');
+    }
+
+    function closeAllModals() {
+        document.querySelectorAll('.modal-overlay.active').forEach(overlay => {
+            overlay.classList.remove('active');
+        });
+        if (activeFocusTrap) {
+            activeFocusTrap();
+            activeFocusTrap = null;
         }
-        
-        function setAppTheme(theme) {
-            currentAppTheme = theme;
-            localStorage.setItem('airscout_app_theme', theme);
-            
-            if (theme === 'light') {
-                document.body.classList.add('light-mode');
+    }
+
+    function trapFocus(modal) {
+        const focusableSelector = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
+        const focusableElements = modal.querySelectorAll(focusableSelector);
+        if (!focusableElements.length) return () => {};
+
+        const firstEl = focusableElements[0];
+        const lastEl = focusableElements[focusableElements.length - 1];
+
+        function handler(e) {
+            if (e.key !== 'Tab') return;
+            if (e.shiftKey) {
+                if (document.activeElement === firstEl) {
+                    lastEl.focus();
+                    e.preventDefault();
+                }
             } else {
-                document.body.classList.remove('light-mode');
+                if (document.activeElement === lastEl) {
+                    firstEl.focus();
+                    e.preventDefault();
+                }
             }
-            
-            // Update button states
-            document.querySelectorAll('.theme-option').forEach(btn => {
-                btn.classList.toggle('active', btn.dataset.appTheme === theme);
+        }
+
+        modal.addEventListener('keydown', handler);
+        setTimeout(() => firstEl.focus(), 50);
+
+        return () => modal.removeEventListener('keydown', handler);
+    }
+
+    /* ============================================================
+       Onboarding
+    ============================================================ */
+    function showOnboardingIfNeeded() {
+        if (localStorage.getItem('airscout_onboarded')) return;
+        openModal('onboardingModal');
+    }
+
+    function completeOnboarding() {
+        localStorage.setItem('airscout_onboarded', '1');
+        closeModal('onboardingModal');
+
+        if ('Notification' in window && Notification.permission === 'default') {
+            Notification.requestPermission().then(perm => {
+                console.log('Notification permission:', perm);
             });
         }
-        
-        function setMapStyle(styleKey) {
-            const style = MAP_STYLES[styleKey];
-            if (!style) return;
-            
-            currentMapStyle = styleKey;
-            localStorage.setItem('airscout_map_style', styleKey);
-            
-            // Remove old tile layer and add new one
-            if (currentTileLayer) {
-                map.removeLayer(currentTileLayer);
-            }
-            
-            currentTileLayer = L.tileLayer(style.url, {
-                maxZoom: 19,
-                attribution: style.attribution
-            }).addTo(map);
-            
-            // Update button states
-            document.querySelectorAll('.map-style-option').forEach(btn => {
-                btn.classList.toggle('active', btn.dataset.mapStyle === styleKey);
-            });
-        }
-        
-        // Register service worker
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('sw.js')
-                .then(() => console.log('Service Worker registered'))
-                .catch(err => console.warn('SW registration failed:', err));
-        }
+    }
+
+    /* ============================================================
+       Service Worker
+    ============================================================ */
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('sw.js')
+            .then(() => console.log('Service Worker registered'))
+            .catch(err => console.warn('SW registration failed:', err));
+    }
     </script>
 </body>
 </html>
-
-

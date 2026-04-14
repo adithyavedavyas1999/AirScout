@@ -1,6 +1,12 @@
 # AirScout
 
+[![Live App](https://img.shields.io/badge/Live_App-Try_AirScout-00e5c7?style=for-the-badge&logo=googlemaps&logoColor=white)](https://adithyavedavyas1999.github.io/AirScout/)
+[![Deploy PWA](https://github.com/adithyavedavyas1999/AirScout/actions/workflows/deploy_pwa.yml/badge.svg)](https://github.com/adithyavedavyas1999/AirScout/actions/workflows/deploy_pwa.yml)
+[![Tests](https://github.com/adithyavedavyas1999/AirScout/actions/workflows/tests.yml/badge.svg)](https://github.com/adithyavedavyas1999/AirScout/actions/workflows/tests.yml)
+
 **Hazard-Aware Routing Engine for Chicago** — Protecting children with asthma from hyper-local pollution sources like idling buses, demolition dust, and poor air quality.
+
+> **[Launch the live app](https://adithyavedavyas1999.github.io/AirScout/)** to explore hazard data and find safe walking routes across Chicago.
 
 ---
 
@@ -179,6 +185,7 @@ AirScout/
 │   └── tests.yml               # CI test runner
 │
 ├── data_pipeline/
+│   ├── __init__.py
 │   ├── db.py                   # Centralized database connection
 │   ├── scoring.py              # Centralized risk scoring logic
 │   ├── config.py               # All configuration (data portal, AQI, weather, routing)
@@ -202,6 +209,7 @@ AirScout/
 │   └── app.py                  # Streamlit admin (hazards, AQI, weather, subscriptions)
 │
 ├── pwa/
+│   ├── icons/                  # PWA app icons
 │   ├── index.html              # PWA with auth, realtime, safe routing, AQI
 │   ├── config.example.js
 │   ├── manifest.json
@@ -211,6 +219,7 @@ AirScout/
 │   └── check-route/index.ts    # Edge function with safe-route support
 │
 ├── tests/
+│   ├── __init__.py
 │   ├── test_scoring.py
 │   ├── test_config.py
 │   ├── test_check_route.py
@@ -220,6 +229,7 @@ AirScout/
 ├── scripts/
 │   └── generate_vapid_keys.py
 │
+├── .gitignore
 ├── requirements.txt
 └── env.example
 ```
@@ -235,6 +245,7 @@ AirScout/
 | `SUPABASE_DB_HOST` | Database host | Yes |
 | `SUPABASE_DB_PASSWORD` | Database password | Yes |
 | `SUPABASE_DB_PORT` | Database port (5432 local, 6543 pooler) | No |
+| `SUPABASE_DB_NAME` | Database name (default: postgres) | No |
 | `SUPABASE_DB_USER` | Database user | No |
 | `SUPABASE_URL` | Supabase API URL | For PWA |
 | `SUPABASE_ANON_KEY` | Supabase publishable key | For PWA |

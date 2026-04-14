@@ -1659,7 +1659,7 @@
     let routeLayer = null;
     let hazardMarkers = [];
     let safeRouteLayers = [];
-    let supabase = null;
+    let sb = null;
     let currentUser = null;
     let authMethod = null;
     let currentRouteCoords = [];
@@ -1798,15 +1798,15 @@
         }
 
         try {
-            supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-            const { data: { user } } = await supabase.auth.getUser();
+            const { data: { user } } = await sb.auth.getUser();
 
             if (user) {
                 currentUser = user.id;
                 authMethod = user.is_anonymous ? 'anonymous' : 'authenticated';
             } else {
-                const { data, error } = await supabase.auth.signInAnonymously();
+                const { data, error } = await sb.auth.signInAnonymously();
                 if (error) {
                     console.error('Anonymous sign-in failed:', error);
                     return;
@@ -1825,10 +1825,10 @@
        Supabase Realtime
     ============================================================ */
     function subscribeToHazards() {
-        if (!supabase) return;
+        if (!sb) return;
 
         try {
-            realtimeChannel = supabase
+            realtimeChannel = sb
                 .channel('hazards-realtime')
                 .on(
                     'postgres_changes',
@@ -1890,7 +1890,7 @@
         descEl.textContent = 'Analyzing route...';
 
         try {
-            if (!supabase) {
+            if (!sb) {
                 descEl.textContent = 'Unable to analyze — no backend connection';
                 scoreEl.textContent = '--';
                 return { score: 0, level: 'low', hazards: [] };
@@ -1898,7 +1898,7 @@
 
             const routeWkt = 'LINESTRING(' + coords.map(c => c[0] + ' ' + c[1]).join(', ') + ')';
 
-            const { data, error } = await supabase.rpc('check_route_hazards', {
+            const { data, error } = await sb.rpc('check_route_hazards', {
                 route_wkt: routeWkt,
                 buffer_meters: ROUTE_BUFFER_METERS,
                 min_severity: 1
@@ -1974,12 +1974,12 @@
     ============================================================ */
     async function loadHazards() {
         try {
-            if (!supabase) {
+            if (!sb) {
                 console.warn('Supabase not connected — cannot load hazards');
                 return;
             }
 
-            const { data, error } = await supabase.rpc('get_map_hazards', {
+            const { data, error } = await sb.rpc('get_map_hazards', {
                 p_min_severity: 1,
                 p_limit: 500
             });
@@ -2050,7 +2050,7 @@
         }
 
         try {
-            if (!supabase) {
+            if (!sb) {
                 alert('Cannot save — no backend connection. Please check your configuration.');
                 return;
             }
@@ -2062,7 +2062,7 @@
                 pushToken = await getPushSubscription();
             }
 
-            const { error } = await supabase.rpc('subscribe_to_route', {
+            const { error } = await sb.rpc('subscribe_to_route', {
                 p_user_id: currentUser,
                 p_route_wkt: routeWkt,
                 p_route_name: name,
@@ -2089,7 +2089,7 @@
         const container = document.getElementById('routesContainer');
 
         try {
-            if (!supabase) {
+            if (!sb) {
                 container.innerHTML = '';
                 const div = document.createElement('div');
                 div.className = 'error-state';
@@ -2098,7 +2098,7 @@
                 return;
             }
 
-            const { data, error } = await supabase.rpc('get_user_subscriptions', { p_user_id: currentUser });
+            const { data, error } = await sb.rpc('get_user_subscriptions', { p_user_id: currentUser });
             if (error) throw error;
 
             const routes = data;
@@ -2178,9 +2178,9 @@
     }
 
     async function toggleAlerts(routeId, enabled) {
-        if (!supabase) return;
+        if (!sb) return;
         try {
-            await supabase.rpc('update_subscription_alerts', {
+            await sb.rpc('update_subscription_alerts', {
                 p_subscription_id: routeId,
                 p_user_id: currentUser,
                 p_alert_enabled: enabled
@@ -2193,10 +2193,10 @@
     async function deleteRoute(routeId) {
         if (!confirm('Delete this route?')) return;
 
-        if (!supabase) return;
+        if (!sb) return;
 
         try {
-            await supabase.rpc('delete_subscription', { p_subscription_id: routeId, p_user_id: currentUser });
+            await sb.rpc('delete_subscription', { p_subscription_id: routeId, p_user_id: currentUser });
             loadUserRoutes();
         } catch (err) {
             console.error('Error deleting route:', err);
@@ -2270,10 +2270,10 @@
                 const coords = route.geometry.coordinates;
                 let riskResult = { score: 0, level: 'low', hazards: [] };
 
-                if (supabase) {
+                if (sb) {
                     try {
                         const routeWkt = 'LINESTRING(' + coords.map(c => c[0] + ' ' + c[1]).join(', ') + ')';
-                        const { data: hazardData, error } = await supabase.rpc('check_route_hazards', {
+                        const { data: hazardData, error } = await sb.rpc('check_route_hazards', {
                             route_wkt: routeWkt,
                             buffer_meters: ROUTE_BUFFER_METERS,
                             min_severity: 1
@@ -2401,7 +2401,7 @@
         document.getElementById('settingsAuthStatus').textContent = authMethod
             ? ('Signed in (' + authMethod + ')')
             : 'Not authenticated';
-        document.getElementById('settingsConnection').textContent = supabase ? '✓ Connected' : '✗ Not connected';
+        document.getElementById('settingsConnection').textContent = sb ? '✓ Connected' : '✗ Not connected';
         document.getElementById('settingsRealtime').textContent = realtimeConnected ? '✓ Live' : '✗ Inactive';
 
         document.querySelectorAll('.theme-option').forEach(btn => {

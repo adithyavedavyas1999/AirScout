@@ -23,14 +23,12 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Create config.js with secrets
+        env:
+          SB_URL: ${{ secrets.SUPABASE_URL }}
+          SB_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          VAPID_KEY: ${{ secrets.VAPID_PUBLIC_KEY }}
         run: |
-          cat > pwa/config.js << EOF
-          const AIRSCOUT_CONFIG = {
-              SUPABASE_URL: '${{ secrets.SUPABASE_URL }}',
-              SUPABASE_ANON_KEY: '${{ secrets.SUPABASE_ANON_KEY }}',
-              VAPID_PUBLIC_KEY: '${{ secrets.VAPID_PUBLIC_KEY }}'
-          };
-          EOF
+          printf 'const AIRSCOUT_CONFIG = {\n  SUPABASE_URL: "%s",\n  SUPABASE_ANON_KEY: "%s",\n  VAPID_PUBLIC_KEY: "%s"\n};\n' "$SB_URL" "$SB_KEY" "$VAPID_KEY" > pwa/config.js
 
       - uses: actions/configure-pages@v4
       - uses: actions/upload-pages-artifact@v3

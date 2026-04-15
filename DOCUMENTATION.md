@@ -3,7 +3,7 @@
 **Hazard-Aware Routing Engine for Chicago**
 
 **Author:** Adithya Vedavyas  
-**Duration:** November 2025 – April 2026  
+**Duration:** June 2025 – October 2025  
 **Live Application:** [https://adithyavedavyas1999.github.io/AirScout/](https://adithyavedavyas1999.github.io/AirScout/)  
 **Repository:** [https://github.com/adithyavedavyas1999/AirScout](https://github.com/adithyavedavyas1999/AirScout)
 
@@ -37,7 +37,7 @@
 
 AirScout is a risk-based routing engine designed to protect children with asthma from hyper-local pollution hazards in Chicago. The system ingests real-time data from multiple public APIs — including the Chicago Data Portal, the EPA AirNow network, and OpenWeatherMap — to identify demolition sites, traffic congestion zones, school-zone diesel idling corridors, and degraded air quality pockets. It then scores walking routes against these hazards using a weighted proximity model and presents safer alternatives through a mobile-friendly Progressive Web Application.
 
-The project was built over roughly five months, starting with database schema design and data pipeline prototyping in November 2025, through frontend development and real-time integration in early 2026, and concluding with testing, CI/CD automation, and deployment in April 2026.
+The project was built over roughly five months, starting with database schema design and data pipeline prototyping in June 2025, through frontend development and real-time integration over the summer, and concluding with testing, CI/CD automation, and deployment in October 2025.
 
 At its core, AirScout addresses a gap that existing navigation apps ignore: none of them factor in localized, transient pollution sources when recommending pedestrian routes. For a parent walking a child with asthma to school, passing within 25 meters of an active demolition site or a line of idling school buses can trigger a severe episode. AirScout makes that invisible risk visible and actionable.
 
@@ -638,27 +638,27 @@ The `data_pipeline/config.py` module defines dataclass-based configuration objec
 
 ## 16. Development Timeline
 
-### Phase 1: Research and Foundation (November 2025)
+### Phase 1: Research and Foundation (June 2025)
 
 The initial phase focused on understanding the problem domain and establishing the technical foundation. I reviewed EPA guidance on pedestrian-level pollution exposure, studied the Chicago Data Portal's available datasets, and evaluated database options. Supabase was selected for its combination of managed PostgreSQL, PostGIS support, built-in auth, and Realtime subscriptions — all available on the free tier.
 
 The first two database migrations (`001_enable_postgis.sql` and `002_create_tables.sql`) were written during this phase, along with the initial `ingest_permits.py` and `ingest_schools.py` pipelines. The zombie permit validation algorithm was developed iteratively — the first version used a simple distance filter on all permits, which produced unacceptably high false positive rates. Cross-referencing with 311 complaints reduced this dramatically.
 
-### Phase 2: Pipeline Development (December 2025 – January 2026)
+### Phase 2: Pipeline Development (July – August 2025)
 
 This phase expanded the data ingestion layer to include traffic congestion, school zone hazard generation, and the alert service. The school zone "hard rule" (severity 5 during peak hours) emerged from analyzing the data — morning and afternoon periods consistently showed the highest overlap between diesel bus presence and pedestrian student traffic.
 
 The `alert_service.py` module was the most complex pipeline to develop, requiring careful handling of deduplication (avoiding repeat alerts for the same hazard), subscription iteration, and Web Push delivery. The alert history schema (`003_alert_history.sql`) was designed during this phase.
 
-### Phase 3: Frontend and API Layer (February – March 2026)
+### Phase 3: Frontend and API Layer (August – September 2025)
 
-The PWA was developed in February, starting with the map interface and route drawing, then adding the Supabase integration. The `004_api_functions.sql` migration — defining all the RPC functions — went through several iterations as the frontend's data requirements became clearer.
+The PWA was developed in August, starting with the map interface and route drawing, then adding the Supabase integration. The `004_api_functions.sql` migration — defining all the RPC functions — went through several iterations as the frontend's data requirements became clearer.
 
-The safe route finder was added in March after integrating with OSRM. The initial implementation used a single route and compared it against a straight-line path, but this was replaced with the current approach of requesting multiple alternatives from OSRM and ranking them by risk score, which produces more useful results.
+The safe route finder was added in September after integrating with OSRM. The initial implementation used a single route and compared it against a straight-line path, but this was replaced with the current approach of requesting multiple alternatives from OSRM and ranking them by risk score, which produces more useful results.
 
 Supabase Realtime integration was also added during this phase, replacing the original 30-second polling interval with WebSocket-based live updates. The improvement in responsiveness was immediately noticeable during testing.
 
-### Phase 4: Integration and Hardening (March – April 2026)
+### Phase 4: Integration and Hardening (September – October 2025)
 
 The final phase focused on bringing all components together and hardening the system. Key work included:
 

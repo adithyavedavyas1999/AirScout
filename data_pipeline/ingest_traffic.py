@@ -8,11 +8,13 @@ Implements School Zone Override: traffic near schools is IGNORED during peak hou
 
 import json
 import logging
+import time as time_mod
 from datetime import datetime, timedelta, time
 from zoneinfo import ZoneInfo
 
 import pandas as pd
 import geopandas as gpd
+from requests.exceptions import HTTPError, ConnectionError, Timeout
 from shapely.geometry import Point
 from sodapy import Socrata
 from sqlalchemy import text
@@ -56,10 +58,33 @@ def is_school_zone_peak_time(dt: datetime = None) -> bool:
     return MORNING_START <= current_time < MORNING_END or AFTERNOON_START <= current_time < AFTERNOON_END
 
 
+MAX_RETRIES = 3
+RETRY_BACKOFF_SECONDS = 10
+RETRYABLE_STATUS_CODES = {429, 500, 502, 503, 504}
+
+
 def fetch_traffic_data(client: Socrata, limit: int = 2000) -> pd.DataFrame:
     logger.info("Fetching traffic congestion data...")
+    last_error = None
+    for attempt in range(1, MAX_RETRIES + 1):
+        try:
+            results = client.get(TRAFFIC_DATASET_ID, limit=limit, order="time DESC")
+            break
+        except (HTTPError, ConnectionError, Timeout) as e:
+            last_error = e
+            status = getattr(getattr(e, 'response', None), 'status_code', None)
+            if status and status not in RETRYABLE_STATUS_CODES:
+                raise
+            wait = RETRY_BACKOFF_SECONDS * attempt
+            logger.warning(f"Attempt {attempt}/{MAX_RETRIES} failed ({e}), retrying in {wait}s...")
+            time_mod.sleep(wait)
+        except Exception as e:
+            raise
+    else:
+        logger.error(f"All {MAX_RETRIES} attempts failed: {last_error}")
+        return pd.DataFrame()
+
     try:
-        results = client.get(TRAFFIC_DATASET_ID, limit=limit, order="time DESC")
         if not results:
             logger.warning("No traffic data found")
             return pd.DataFrame()
@@ -240,7 +265,7 @@ def run_traffic_ingestion(dry_run: bool = False):
     try:
         traffic_df = fetch_traffic_data(client)
         if traffic_df.empty:
-            logger.info("No significant traffic congestion found")
+            logger.info("No significant traffic congestion found — exiting gracefully")
             return
 
         engine = get_engine()

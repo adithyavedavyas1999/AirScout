@@ -8,11 +8,13 @@ by a 311 complaint (SVR/NOI) within 200m in the last 48 hours.
 
 import json
 import logging
+import time
 from datetime import datetime, timedelta
 from typing import Optional
 
 import pandas as pd
 import geopandas as gpd
+from requests.exceptions import HTTPError, ConnectionError, Timeout
 from shapely.geometry import Point
 from sodapy import Socrata
 from sqlalchemy import text
@@ -37,6 +39,27 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+MAX_RETRIES = 3
+RETRY_BACKOFF_SECONDS = 10
+RETRYABLE_STATUS_CODES = {429, 500, 502, 503, 504}
+
+
+def _fetch_with_retry(client: Socrata, dataset_id: str, **kwargs) -> list:
+    last_error = None
+    for attempt in range(1, MAX_RETRIES + 1):
+        try:
+            return client.get(dataset_id, **kwargs)
+        except (HTTPError, ConnectionError, Timeout) as e:
+            last_error = e
+            status = getattr(getattr(e, 'response', None), 'status_code', None)
+            if status and status not in RETRYABLE_STATUS_CODES:
+                raise
+            wait = RETRY_BACKOFF_SECONDS * attempt
+            logger.warning(f"Attempt {attempt}/{MAX_RETRIES} failed ({e}), retrying in {wait}s...")
+            time.sleep(wait)
+    logger.error(f"All {MAX_RETRIES} attempts failed: {last_error}")
+    return []
+
 
 def _socrata_client() -> Socrata:
     token = chicago_data.app_token or None
@@ -53,38 +76,34 @@ def fetch_demolition_permits(client: Socrata, limit: int = 5000) -> pd.DataFrame
         f"AND (permit_type LIKE '%WRECKING%' OR permit_type LIKE '%DEMOLITION%')"
     )
 
-    try:
-        results = client.get(
-            PERMITS_DATASET_ID,
-            where=where_clause,
-            limit=limit,
-            select="id, permit_, permit_type, work_description, "
-                   "street_number, street_direction, street_name, "
-                   "latitude, longitude, issue_date",
-        )
-        if not results:
-            logger.warning("No demolition permits found")
-            return pd.DataFrame()
+    results = _fetch_with_retry(
+        client, PERMITS_DATASET_ID,
+        where=where_clause,
+        limit=limit,
+        select="id, permit_, permit_type, work_description, "
+               "street_number, street_direction, street_name, "
+               "latitude, longitude, issue_date",
+    )
+    if not results:
+        logger.warning("No demolition permits found")
+        return pd.DataFrame()
 
-        df = pd.DataFrame.from_records(results)
-        df = df.rename(columns={"permit_": "permit_number"})
+    df = pd.DataFrame.from_records(results)
+    df = df.rename(columns={"permit_": "permit_number"})
 
-        df["address"] = (
-            df.get("street_number", pd.Series(dtype=str)).fillna("") + " " +
-            df.get("street_direction", pd.Series(dtype=str)).fillna("") + " " +
-            df.get("street_name", pd.Series(dtype=str)).fillna("")
-        ).str.strip()
+    df["address"] = (
+        df.get("street_number", pd.Series(dtype=str)).fillna("") + " " +
+        df.get("street_direction", pd.Series(dtype=str)).fillna("") + " " +
+        df.get("street_name", pd.Series(dtype=str)).fillna("")
+    ).str.strip()
 
-        df["latitude"] = pd.to_numeric(df["latitude"], errors="coerce")
-        df["longitude"] = pd.to_numeric(df["longitude"], errors="coerce")
-        df["issue_date"] = pd.to_datetime(df["issue_date"], errors="coerce")
-        df = df.dropna(subset=["latitude", "longitude"])
+    df["latitude"] = pd.to_numeric(df["latitude"], errors="coerce")
+    df["longitude"] = pd.to_numeric(df["longitude"], errors="coerce")
+    df["issue_date"] = pd.to_datetime(df["issue_date"], errors="coerce")
+    df = df.dropna(subset=["latitude", "longitude"])
 
-        logger.info(f"Fetched {len(df)} demolition permits")
-        return df
-    except Exception as e:
-        logger.error(f"Error fetching permits: {e}")
-        raise
+    logger.info(f"Fetched {len(df)} demolition permits")
+    return df
 
 
 def fetch_recent_complaints(client: Socrata, hours_lookback: int = COMPLAINT_LOOKBACK_HOURS, limit: int = 10000) -> pd.DataFrame:
@@ -93,37 +112,33 @@ def fetch_recent_complaints(client: Socrata, hours_lookback: int = COMPLAINT_LOO
 
     where_clause = f"created_date >= '{cutoff_time}' AND latitude IS NOT NULL AND longitude IS NOT NULL"
 
-    try:
-        results = client.get(
-            COMPLAINTS_311_DATASET_ID,
-            where=where_clause,
-            limit=limit,
-            select="sr_number, sr_type, sr_short_code, latitude, longitude, created_date, status, street_address, city, state",
-        )
-        if not results:
-            logger.warning("No recent 311 complaints found")
-            return pd.DataFrame()
+    results = _fetch_with_retry(
+        client, COMPLAINTS_311_DATASET_ID,
+        where=where_clause,
+        limit=limit,
+        select="sr_number, sr_type, sr_short_code, latitude, longitude, created_date, status, street_address, city, state",
+    )
+    if not results:
+        logger.warning("No recent 311 complaints found")
+        return pd.DataFrame()
 
-        df = pd.DataFrame.from_records(results)
-        df = df.rename(columns={"sr_number": "service_request_id", "sr_type": "complaint_description", "sr_short_code": "complaint_type"})
+    df = pd.DataFrame.from_records(results)
+    df = df.rename(columns={"sr_number": "service_request_id", "sr_type": "complaint_description", "sr_short_code": "complaint_type"})
 
-        dust_keywords = ["DUST", "DEMOLITION", "CONSTRUCTION", "DEBRIS"]
-        df["is_relevant"] = (
-            df["complaint_type"].isin(VALIDATING_COMPLAINT_TYPES)
-            | df["complaint_description"].str.upper().str.contains("|".join(dust_keywords), na=False)
-        )
-        df = df[df["is_relevant"]].drop(columns=["is_relevant"])
+    dust_keywords = ["DUST", "DEMOLITION", "CONSTRUCTION", "DEBRIS"]
+    df["is_relevant"] = (
+        df["complaint_type"].isin(VALIDATING_COMPLAINT_TYPES)
+        | df["complaint_description"].str.upper().str.contains("|".join(dust_keywords), na=False)
+    )
+    df = df[df["is_relevant"]].drop(columns=["is_relevant"])
 
-        df["latitude"] = pd.to_numeric(df["latitude"], errors="coerce")
-        df["longitude"] = pd.to_numeric(df["longitude"], errors="coerce")
-        df["created_date"] = pd.to_datetime(df["created_date"], errors="coerce")
-        df = df.dropna(subset=["latitude", "longitude"])
+    df["latitude"] = pd.to_numeric(df["latitude"], errors="coerce")
+    df["longitude"] = pd.to_numeric(df["longitude"], errors="coerce")
+    df["created_date"] = pd.to_datetime(df["created_date"], errors="coerce")
+    df = df.dropna(subset=["latitude", "longitude"])
 
-        logger.info(f"Fetched {len(df)} relevant 311 complaints")
-        return df
-    except Exception as e:
-        logger.error(f"Error fetching complaints: {e}")
-        raise
+    logger.info(f"Fetched {len(df)} relevant 311 complaints")
+    return df
 
 
 def validate_permits_with_complaints(permits_df: pd.DataFrame, complaints_df: pd.DataFrame, radius_meters: float = COMPLAINT_RADIUS_METERS) -> pd.DataFrame:

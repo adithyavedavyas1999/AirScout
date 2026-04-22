@@ -30,12 +30,17 @@ CREATE POLICY "Permits are publicly readable"
     ON permits_demolition FOR SELECT
     USING (true);
 
--- spatial_ref_sys: PostGIS system catalog, strictly read-only.
-ALTER TABLE IF EXISTS spatial_ref_sys ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Spatial reference data is read-only"
-    ON spatial_ref_sys FOR SELECT
-    USING (true);
+-- spatial_ref_sys: PostGIS system catalog owned by the superuser.
+-- We cannot ALTER it directly; instead revoke write access from API roles.
+-- This prevents PostgREST clients from modifying it while keeping reads
+-- available for PostGIS internals.
+DO $$
+BEGIN
+    REVOKE INSERT, UPDATE, DELETE ON spatial_ref_sys FROM anon, authenticated;
+EXCEPTION WHEN OTHERS THEN
+    RAISE NOTICE 'spatial_ref_sys grant revoke skipped: %', SQLERRM;
+END;
+$$;
 
 
 -- ============================================================

@@ -200,7 +200,7 @@ BEGIN
     GET DIAGNOSTICS deleted_count = ROW_COUNT;
     RETURN deleted_count;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql SET search_path = public;
 
 -- Function to check if a point is within buffer of a route
 -- Uses ST_DWithin for efficient spatial query (200m default buffer)
@@ -220,7 +220,7 @@ BEGIN
     )
     AND h.expires_at > NOW();
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql SET search_path = public;
 
 -- Function to validate permits against 311 complaints (Zombie Permit logic)
 -- Returns permits that have a complaint within 200m in last 48 hours
@@ -253,7 +253,7 @@ BEGIN
     WHERE c.created_date >= NOW() - (hours_lookback || ' hours')::INTERVAL
       AND c.complaint_type IN ('SVR', 'NOI');
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql SET search_path = public;
 
 -- ============================================================
 -- ROW LEVEL SECURITY (RLS) - Enable for Supabase
@@ -279,6 +279,20 @@ CREATE POLICY "Hazards are publicly readable" ON hazards_active
 ALTER TABLE schools_static ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Schools are publicly readable" ON schools_static
+    FOR SELECT
+    USING (true);
+
+-- Complaints are read-only cache data (pipeline writes via service role)
+ALTER TABLE complaints_311 ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Complaints are publicly readable" ON complaints_311
+    FOR SELECT
+    USING (true);
+
+-- Permits are read-only cache data (pipeline writes via service role)
+ALTER TABLE permits_demolition ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Permits are publicly readable" ON permits_demolition
     FOR SELECT
     USING (true);
 

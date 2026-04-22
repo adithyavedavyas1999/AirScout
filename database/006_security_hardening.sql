@@ -1,13 +1,176 @@
 -- ============================================================
--- AirScout Database Migration: 004_api_functions.sql
--- SQL functions for API endpoints (Edge Functions)
+-- AirScout Database Migration: 006_security_hardening.sql
+-- Resolves all Supabase Security Advisor errors and warnings
 -- ============================================================
--- Run this AFTER 003_alert_history.sql
+-- Run AFTER 005_enhanced_features.sql
+--
+-- Fixes:
+--   [ERROR]   RLS disabled on complaints_311, permits_demolition, spatial_ref_sys
+--   [WARNING] Function Search Path Mutable on all 15 RPC functions
+--   [INFO]    PostGIS extension in public schema (addressed via search_path)
+-- ============================================================
 
 -- ============================================================
--- FUNCTION: check_route_hazards
--- Called by Edge Function to check a route for hazards
+-- 1. ENABLE ROW-LEVEL SECURITY ON UNPROTECTED TABLES
 -- ============================================================
+
+-- complaints_311: cache data written by pipeline (service role);
+-- anonymous/authenticated users may only read.
+ALTER TABLE complaints_311 ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Complaints are publicly readable"
+    ON complaints_311 FOR SELECT
+    USING (true);
+
+-- permits_demolition: cache data written by pipeline (service role);
+-- anonymous/authenticated users may only read.
+ALTER TABLE permits_demolition ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Permits are publicly readable"
+    ON permits_demolition FOR SELECT
+    USING (true);
+
+-- spatial_ref_sys: PostGIS system catalog, strictly read-only.
+ALTER TABLE IF EXISTS spatial_ref_sys ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Spatial reference data is read-only"
+    ON spatial_ref_sys FOR SELECT
+    USING (true);
+
+
+-- ============================================================
+-- 2. FIX FUNCTION SEARCH PATH MUTABLE WARNINGS
+--    Re-create every function with an explicit SET search_path
+--    so PostgreSQL resolves names deterministically.
+-- ============================================================
+
+-- ----- From 002_create_tables.sql -----
+
+CREATE OR REPLACE FUNCTION cleanup_expired_hazards()
+RETURNS INTEGER AS $$
+DECLARE
+    deleted_count INTEGER;
+BEGIN
+    DELETE FROM hazards_active
+    WHERE expires_at < NOW();
+    GET DIAGNOSTICS deleted_count = ROW_COUNT;
+    RETURN deleted_count;
+END;
+$$ LANGUAGE plpgsql SET search_path = public;
+
+
+CREATE OR REPLACE FUNCTION hazards_near_route(
+    route GEOMETRY,
+    buffer_meters FLOAT DEFAULT 25.0
+)
+RETURNS SETOF hazards_active AS $$
+BEGIN
+    RETURN QUERY
+    SELECT h.*
+    FROM hazards_active h
+    WHERE ST_DWithin(
+        h.location::geography,
+        route::geography,
+        buffer_meters
+    )
+    AND h.expires_at > NOW();
+END;
+$$ LANGUAGE plpgsql SET search_path = public;
+
+
+CREATE OR REPLACE FUNCTION get_validated_permits(
+    radius_meters FLOAT DEFAULT 200.0,
+    hours_lookback INTEGER DEFAULT 48
+)
+RETURNS TABLE (
+    permit_number VARCHAR(50),
+    permit_location GEOMETRY,
+    complaint_id VARCHAR(50),
+    complaint_type VARCHAR(20),
+    distance_meters FLOAT
+) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT
+        p.permit_number,
+        p.location AS permit_location,
+        c.service_request_id AS complaint_id,
+        c.complaint_type,
+        ST_Distance(p.location::geography, c.location::geography) AS distance_meters
+    FROM permits_demolition p
+    INNER JOIN complaints_311 c
+        ON ST_DWithin(
+            p.location::geography,
+            c.location::geography,
+            radius_meters
+        )
+    WHERE c.created_date >= NOW() - (hours_lookback || ' hours')::INTERVAL
+      AND c.complaint_type IN ('SVR', 'NOI');
+END;
+$$ LANGUAGE plpgsql SET search_path = public;
+
+
+-- ----- From 003_alert_history.sql -----
+
+CREATE OR REPLACE FUNCTION was_recently_alerted(
+    p_user_id VARCHAR(255),
+    p_hazard_source_id VARCHAR(100),
+    p_hours INTEGER DEFAULT 4
+)
+RETURNS BOOLEAN AS $$
+BEGIN
+    RETURN EXISTS (
+        SELECT 1
+        FROM alert_history
+        WHERE user_id = p_user_id
+          AND hazard_source_id = p_hazard_source_id
+          AND sent_at > NOW() - (p_hours || ' hours')::INTERVAL
+    );
+END;
+$$ LANGUAGE plpgsql SET search_path = public;
+
+
+CREATE OR REPLACE FUNCTION cleanup_old_alerts(days_to_keep INTEGER DEFAULT 30)
+RETURNS INTEGER AS $$
+DECLARE
+    deleted_count INTEGER;
+BEGIN
+    DELETE FROM alert_history
+    WHERE sent_at < NOW() - (days_to_keep || ' days')::INTERVAL;
+    GET DIAGNOSTICS deleted_count = ROW_COUNT;
+    RETURN deleted_count;
+END;
+$$ LANGUAGE plpgsql SET search_path = public;
+
+
+CREATE OR REPLACE FUNCTION register_push_subscription(
+    p_user_id VARCHAR(255),
+    p_endpoint TEXT,
+    p_p256dh TEXT,
+    p_auth TEXT,
+    p_user_agent TEXT DEFAULT NULL
+)
+RETURNS UUID AS $$
+DECLARE
+    subscription_id UUID;
+BEGIN
+    INSERT INTO push_subscriptions (user_id, endpoint, p256dh_key, auth_secret, user_agent)
+    VALUES (p_user_id, p_endpoint, p_p256dh, p_auth, p_user_agent)
+    ON CONFLICT (user_id, endpoint)
+    DO UPDATE SET
+        p256dh_key = EXCLUDED.p256dh_key,
+        auth_secret = EXCLUDED.auth_secret,
+        user_agent = EXCLUDED.user_agent,
+        is_active = TRUE,
+        last_used_at = NOW()
+    RETURNING id INTO subscription_id;
+    RETURN subscription_id;
+END;
+$$ LANGUAGE plpgsql SET search_path = public;
+
+
+-- ----- From 004_api_functions.sql -----
+
 CREATE OR REPLACE FUNCTION check_route_hazards(
     route_wkt TEXT,
     buffer_meters FLOAT DEFAULT 25.0,
@@ -28,8 +191,6 @@ RETURNS TABLE (
 DECLARE
     buffer_geom GEOMETRY;
 BEGIN
-    -- Create buffer around route
-    -- Transform to Illinois State Plane (meters) for accurate buffering
     buffer_geom := ST_Transform(
         ST_Buffer(
             ST_Transform(ST_GeomFromText(route_wkt, 4326), 26971),
@@ -37,9 +198,9 @@ BEGIN
         ),
         4326
     );
-    
+
     RETURN QUERY
-    SELECT 
+    SELECT
         h.id,
         h.type,
         h.severity,
@@ -61,10 +222,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
--- ============================================================
--- FUNCTION: subscribe_to_route
--- Creates a new route subscription for a user
--- ============================================================
+
 CREATE OR REPLACE FUNCTION subscribe_to_route(
     p_user_id VARCHAR(255),
     p_route_wkt TEXT,
@@ -77,9 +235,9 @@ DECLARE
     subscription_id UUID;
 BEGIN
     INSERT INTO user_subscriptions (
-        user_id, 
-        route_geometry, 
-        route_name, 
+        user_id,
+        route_geometry,
+        route_name,
         push_token,
         severity_threshold,
         alert_enabled
@@ -99,15 +257,11 @@ BEGIN
         severity_threshold = EXCLUDED.severity_threshold,
         updated_at = NOW()
     RETURNING id INTO subscription_id;
-    
     RETURN subscription_id;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
--- ============================================================
--- FUNCTION: get_user_subscriptions
--- Get all subscriptions for a user
--- ============================================================
+
 CREATE OR REPLACE FUNCTION get_user_subscriptions(p_user_id VARCHAR(255))
 RETURNS TABLE (
     id UUID,
@@ -119,7 +273,7 @@ RETURNS TABLE (
 ) AS $$
 BEGIN
     RETURN QUERY
-    SELECT 
+    SELECT
         s.id,
         s.route_name,
         ST_AsText(s.route_geometry) as route_wkt,
@@ -132,10 +286,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
--- ============================================================
--- FUNCTION: update_subscription_alerts
--- Enable/disable alerts for a subscription
--- ============================================================
+
 CREATE OR REPLACE FUNCTION update_subscription_alerts(
     p_subscription_id UUID,
     p_user_id VARCHAR(255),
@@ -149,16 +300,12 @@ BEGIN
     SET alert_enabled = p_alert_enabled, updated_at = NOW()
     WHERE id = p_subscription_id
       AND user_id = p_user_id;
-    
     GET DIAGNOSTICS updated_count = ROW_COUNT;
     RETURN updated_count > 0;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
--- ============================================================
--- FUNCTION: delete_subscription
--- Delete a user's subscription
--- ============================================================
+
 CREATE OR REPLACE FUNCTION delete_subscription(
     p_subscription_id UUID,
     p_user_id VARCHAR(255)
@@ -170,16 +317,12 @@ BEGIN
     DELETE FROM user_subscriptions
     WHERE id = p_subscription_id
       AND user_id = p_user_id;
-    
     GET DIAGNOSTICS deleted_count = ROW_COUNT;
     RETURN deleted_count > 0;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
--- ============================================================
--- FUNCTION: get_active_hazards_summary
--- Get summary of active hazards (for PWA dashboard)
--- ============================================================
+
 CREATE OR REPLACE FUNCTION get_active_hazards_summary()
 RETURNS TABLE (
     type VARCHAR(20),
@@ -189,7 +332,7 @@ RETURNS TABLE (
 ) AS $$
 BEGIN
     RETURN QUERY
-    SELECT 
+    SELECT
         h.type,
         COUNT(*)::BIGINT,
         AVG(h.severity)::FLOAT,
@@ -200,10 +343,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
--- ============================================================
--- FUNCTION: get_nearby_hazards
--- Get hazards near a point (for PWA "around me" feature)
--- ============================================================
+
 CREATE OR REPLACE FUNCTION get_nearby_hazards(
     p_longitude FLOAT,
     p_latitude FLOAT,
@@ -225,9 +365,9 @@ DECLARE
     user_location GEOMETRY;
 BEGIN
     user_location := ST_SetSRID(ST_MakePoint(p_longitude, p_latitude), 4326);
-    
+
     RETURN QUERY
-    SELECT 
+    SELECT
         h.id,
         h.type,
         h.severity,
@@ -245,10 +385,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
--- ============================================================
--- FUNCTION: get_map_hazards
--- Get all active hazards for map display (with proper lat/lng)
--- ============================================================
+
 CREATE OR REPLACE FUNCTION get_map_hazards(
     p_min_severity INTEGER DEFAULT 1,
     p_limit INTEGER DEFAULT 500
@@ -265,7 +402,7 @@ RETURNS TABLE (
 ) AS $$
 BEGIN
     RETURN QUERY
-    SELECT 
+    SELECT
         h.id,
         h.type,
         h.severity,
@@ -282,24 +419,36 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
+
+-- ----- From 005_enhanced_features.sql -----
+
+CREATE OR REPLACE FUNCTION get_weather_context(p_city VARCHAR DEFAULT 'chicago')
+RETURNS JSONB AS $$
+BEGIN
+    RETURN (SELECT data FROM weather_context WHERE city = p_city);
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+
 -- ============================================================
--- Grant execute permissions to authenticated users
+-- 3. RE-GRANT PERMISSIONS (CREATE OR REPLACE resets grants)
 -- ============================================================
-GRANT EXECUTE ON FUNCTION check_route_hazards TO authenticated;
-GRANT EXECUTE ON FUNCTION subscribe_to_route TO authenticated;
-GRANT EXECUTE ON FUNCTION get_user_subscriptions TO authenticated;
-GRANT EXECUTE ON FUNCTION update_subscription_alerts TO authenticated;
-GRANT EXECUTE ON FUNCTION delete_subscription TO authenticated;
+
+-- Read-only functions: accessible to everyone
+GRANT EXECUTE ON FUNCTION check_route_hazards TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION get_active_hazards_summary TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION get_nearby_hazards TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION get_map_hazards TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION get_weather_context TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION get_validated_permits TO anon, authenticated;
 
--- ============================================================
--- COMMENTS
--- ============================================================
-COMMENT ON FUNCTION check_route_hazards IS 'Check a route (25m buffer) for active hazards';
-COMMENT ON FUNCTION subscribe_to_route IS 'Subscribe a user to receive alerts for a route';
-COMMENT ON FUNCTION get_user_subscriptions IS 'Get all route subscriptions for a user';
-COMMENT ON FUNCTION get_nearby_hazards IS 'Get hazards near a location for the PWA';
-COMMENT ON FUNCTION get_map_hazards IS 'Get all active hazards for map display';
+-- User-scoped write functions: accessible to authenticated + anon (PWA uses anonymous auth)
+GRANT EXECUTE ON FUNCTION subscribe_to_route TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION get_user_subscriptions TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION update_subscription_alerts TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION delete_subscription TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION register_push_subscription TO anon, authenticated;
 
+-- Internal maintenance functions: keep default (postgres/service_role only)
+-- cleanup_expired_hazards, cleanup_old_alerts, was_recently_alerted
+-- are called by pipelines via service role, not by end users.

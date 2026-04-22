@@ -46,7 +46,7 @@ RETURNS JSONB AS $$
 BEGIN
     RETURN (SELECT data FROM weather_context WHERE city = p_city);
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 GRANT EXECUTE ON FUNCTION get_weather_context TO anon, authenticated;
 

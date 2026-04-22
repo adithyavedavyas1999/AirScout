@@ -103,7 +103,7 @@ BEGIN
           AND sent_at > NOW() - (p_hours || ' hours')::INTERVAL
     );
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql SET search_path = public;
 
 -- Function to clean up old alert history
 CREATE OR REPLACE FUNCTION cleanup_old_alerts(days_to_keep INTEGER DEFAULT 30)
@@ -117,7 +117,7 @@ BEGIN
     GET DIAGNOSTICS deleted_count = ROW_COUNT;
     RETURN deleted_count;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql SET search_path = public;
 
 -- Function to register a push subscription
 CREATE OR REPLACE FUNCTION register_push_subscription(
@@ -144,7 +144,7 @@ BEGIN
     
     RETURN subscription_id;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql SET search_path = public;
 
 -- ============================================================
 -- ROW LEVEL SECURITY
